@@ -1,5 +1,7 @@
 # Team Project
 
+![Stressdew Valley title screen](assets/stressdew-valley-title.png)
+
 Please keep this up-to-date with information about your project throughout the term.
 
 The readme should include information such as:
