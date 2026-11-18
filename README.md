@@ -31,7 +31,7 @@ University life simulation, presented as a casual top-down game
 ---
 ## User Stories
 ### User Story 1 — Academics and GPA
-As a student player, I want to choose my major and courses and attend classes and exams so that I can earn a good GPA.
+As a student player, I want to choose my courses, attend classes and exams so that I can earn a good GPA.
 
 Responsible team member: Lanxin Fu
 
@@ -366,7 +366,7 @@ marked resolved.
 |:-------------:|:--------------|
 | Zhenbin An | UC3A — Buy food and eat (spend Money); UC3B — Work a café shift (earn Money) |
 | Yuxiang Yuan | UC2.1 — End the day (calendar, historical weather, commute, auto-save); UC2.3 — Load a saved game |
-| Name | Use Case |
+| Lanxin Fu | UC1.1, UC1.2, UC1.3 |
 | Name | Use Case |
 
 ---
