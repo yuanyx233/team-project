@@ -14,7 +14,8 @@ By keeping this README up-to-date,
 your team will find it easier to prepare for the final presentation
 at the end of the term.
 
-# Project Name
+# Stressdew Valley
+
 ## Team Information
 ### Team Members
 - Yuxiang Yuan
@@ -362,27 +363,54 @@ marked resolved.
 ---
 ## Minimal Viable Product (MVP)
 | Team Member | MVP Use Case |
-|-------------|--------------|
+|:-------------:|:--------------|
 | Zhenbin An | UC3A — Buy food and eat (spend Money); UC3B — Work a café shift (earn Money) |
-| Name | Use Case |
+| Yuxiang Yuan | UC2.1 — End the day (calendar, historical weather, commute, auto-save); UC2.3 — Load a saved game |
 | Name | Use Case |
 | Name | Use Case |
 
 ---
 ## Entities
 ### MenuItem (UC3)
-Represents a meal offered on the menu, with a name, price, and Energy gain. The game sets prices and Energy values; provider-specific API data stays outside the entity.
+Represents a meal offered on the menu, with a name, price, and Energy gain. The game sets prices and Energy values; 
+provider-specific API data stays outside the entity.
 
-### Entity 1
+### Game Calendar (UC2)
+Represents the current point in game time: year, term, day, and time slot (Morning, Afternoon, Evening, Late Night).
+It knows whether the current day is an A day or a B day, whether it is an exam day (day 12 or day 24), and whether
+the week or term has ended. Other use cases use it to spend time slots.
+
+### Housing (UC2)
+Represents where the player lives: Residence or Off-campus. Each type has a rent per term and a base commute cost.
+It calculates the morning commute cost for a given weather condition (Residence has no commute cost).
+
+### DailyWeather (UC2)
+A value object for one game day's weather: the real date it is based on, the game condition (clear, cloudy, rain,
+or snow), and the high and low temperatures. The conversion from raw weather data to a game condition is done
+outside the entity, so provider-specific API data never enters the domain model.
+
+### Player (Shared)
+Represents the student: name, major, housing, location, and stats (GPA, Money, Energy). UC2 restores Energy after
+sleep, applies commute costs, and charges rent; other use cases update the remaining stats.
+
 ### Entity 2
 ### Entity 3
 (Add additional entities as needed.)
 
 ---
 ## API Usage
+
+**Planned UC2 API:** [Open-Metro](https://open-meteo.com/en/docs/historical-weather-api)
+
+**How it will be used:** The game uses real Toronto weather from 2022–2026. Each in-game day is matched
+to a real date, and that day's weather (clear, cloudy, rain, or snow) is shown in the game and affects the
+player's commute. If the API is unavailable, the game uses a saved copy of the same data.
+
 **Planned UC3 API:** [TheMealDB](https://www.themealdb.com/api.php)
 
-**How it will be used:** A menu gateway obtains meal data for the food truck and café and converts selected meals into `MenuItem` values. A bundled menu keeps UC3 playable when the service is unavailable. Access requirements and a successful Java request still need to be verified before integration.
+**How it will be used:** A menu gateway obtains meal data for the food truck and café and converts selected meals into
+`MenuItem` values. A bundled menu keeps UC3 playable when the service is unavailable. Access requirements and a 
+successful Java request still need to be verified before integration.
 
 **API Name:**
 **Documentation:** [Link]
