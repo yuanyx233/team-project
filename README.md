@@ -16,6 +16,22 @@ at the end of the term.
 
 # Stressdew Valley
 
+> **PROPOSAL — scope reduction (draft for team review)**
+>
+> Our previous scope (academics, housing, food and work, NPCs, and email) was too large. This draft keeps two
+> themes, **academics** (main focus) and **daily life and saving**, and splits them into **four user stories, one
+> per member**, as the course requires ("one user story per team member"). The rubric gives ≤ 1/5 for scope if
+> there are fewer user stories than members. A fifth story, the **campus map (US5)**, is shared by everyone.
+>
+> - Removed: food and work (old US3), NPCs and email (old US4.1/4.2), and housing choice (old UC2.2, moved to
+>   *Future Extensions*). The removed text is still in git history.
+> - Each section has a **Note for the lead** box with suggestions. The lead of each section decides the final
+>   wording. Please delete the note boxes once your section is done.
+> - Only US4 has a lead so far. The leads for US1–US3 are **TBA**.
+> - **Time budget:** We have about 2–3 weeks of part-time work, plus the campus map. Each story is split into
+>   **MVP** (must work for the demo) and **Stretch** (only if time allows). With AI-assisted coding, writing code
+>   is not the bottleneck. Understanding our own code for Q&A, and integrating five parts, are.
+
 ## Team Information
 ### Team Members
 - Yuxiang Yuan
@@ -28,50 +44,102 @@ at the end of the term.
 ### Domain
 University life simulation, presented as a casual top-down game
 
+**Stressdew Valley** is a casual simulation game about a term at university. The player chooses a major and
+courses, attends classes, writes exams, and manages limited time and Energy from day to day, with real Toronto
+weather.
+
+**Why we are building it:** When students plan their next term, it is hard to imagine what a course load will
+actually feel like until they are already living it. Stressdew Valley lets any student try out a term before
+committing to it: pick a set of courses, play through the term, and see how the workload affects their daily
+Energy, their exam results, and their GPA. Along the way, the game shows that steady class attendance pays off at
+exam time and that time and energy need to be planned. If a term does not go well, the player can start over with
+a different plan. There is no real-world cost.
+
+> **Note for the team:** This is a proposed motivation. The TA said the project should not be *just* a game, so
+> each claim above maps to a feature: course load → US1, steady attendance → US2, exam results and GPA → US3,
+> daily time and Energy → US4. Our course catalogue is predefined, so we should say "a similar course load" rather
+> than "your real next term". Importing real courses can be a future extension.
+
 ---
 ## User Stories
-### User Story 1 — Academics and GPA
-As a student player, I want to choose my courses, attend classes and exams so that I can earn a good GPA.
+### User Story 1 — Choose a Major and Courses
+As a student player, I want to choose my major and enrol in courses for the term so that I have a timetable that
+shapes my school days.
 
-Responsible team member: Lanxin Fu
+Responsible team member: *TBA*
 
-### User Story 2 — Housing, Days, and Saving
-As a player, I want to choose where I live and have each day, the weather, and the terms progress, with my progress
-saved, so that my life feels continuous and real.
+> **Note for the lead:** On its own, choosing courses may look small next to the other stories. The rubric wants
+> each story to be *significant*. Our motivation ("try out a term before committing") also depends on this story,
+> so courses need to differ from each other.
+> - **MVP:** a small course catalogue where each course has a difficulty and workload; enrolment rules (course
+>   limit, timetable conflicts, required courses for the major); viewing the timetable (classes and exam days
+>   come from it).
+> - **Stretch:** dropping or swapping a course during the term.
+>
+> This story owns the shared academic data (majors, courses, timetable), so please agree on it early with the
+> US2 and US3 leads.
+
+### User Story 2 — Attend Classes
+As a student player, I want to attend my scheduled classes and answer practice questions so that I can build up my
+understanding of each course before its exam.
+
+Responsible team member: *TBA*
+
+> **Note for the lead:** The key design point is how this story differs from US3. Suggested split: attending class
+> is *practice*. It changes course progress but **never** changes grades or GPA.
+> - **MVP:** attend a scheduled class, answer practice questions, gain course progress, spend Energy. Questions
+>   come through a question source shared with US3: start with a bundled question bank, then connect the trivia
+>   API (see *API Usage*).
+> - **Stretch:** consequences for missing a class; class material before the question.
+>
+> Things to decide: what "progress" means (classes attended, correct answers, a mastery score), since US3 reads it;
+> and how a course maps to a question category. Agree on the shared question source with the US3 lead in week 1.
+
+### User Story 3 — Write Exams and Track GPA
+As a student player, I want to write exams for my courses and see my grades and GPA so that I know how well I am
+doing academically.
+
+Responsible team member: *TBA*
+
+> **Note for the lead:** This story is *assessment*: it is the only one that changes grades and GPA.
+> - **MVP:** write an exam on exam day, with questions from the question source shared with US2; calculate the
+>   course grade; update GPA; show the result.
+> - **Stretch:** a transcript screen; a midterm.
+>
+> Things to decide: the grading rule (exam score only, or combined with progress from US2?); the GPA scale (for
+> example, the U of T 4.0 scale); and what happens if the player misses an exam day (exam days come from the
+> calendar in US4).
+
+### User Story 4 — Live Day by Day and Keep My Progress
+As a player, I want each day to pass with real-world weather and have my progress saved so that my university
+life feels continuous and I can pick up where I left off.
 
 Responsible team member: Yuxiang Yuan
 
-### User Story 3 — Food and Work (US3)
-**Lead:** Zhenbin An (UC3)
+> **Note for the lead:** With housing removed, every player lives in residence, so there is no commute cost and no
+> rent.
+> - **MVP:** sleep to start the next day and restore Energy; real weather that affects play (walking outside in
+>   rain or snow costs extra Energy, see US5), so the weather API matters to gameplay rather than being
+>   display-only; auto-save and load.
+> - **Stretch:** A/B days; the weekend card; multiple terms and an ending.
 
-As a player, I want to spend Money on food at the food truck or café to restore Energy, and work café shifts to earn Money, so that I can balance my resources throughout the school day.
+### User Story 5 — Explore the Campus Map
+As a player, I want to move around a campus map and visit different buildings so that I can choose where to spend
+my time each day.
 
-**Responsibilities within UC3:**
-1. Implement food and eating: show available meals, let the player buy food, deduct Money, and restore Energy.
-2. Implement café work: let the player complete a shift, earn Money, and spend Energy and time.
+Responsible team member: Shared (all members)
 
-**Acceptance criteria:**
-- The player can view the day's menu, including each item's price and Energy gain.
-- Buying an affordable item deducts its price, restores Energy, and uses part of the current time slot.
-- Working a café shift pays Money based on correctly served orders, deducts Energy, and uses the time slot.
-- Unaffordable meals, insufficient Energy for a shift, and closed locations give clear feedback without applying an invalid action.
-- If the meal API is unavailable, the player can still use a bundled fallback menu.
-
-### User Story 4.1 — Build Campus Relationships
-As a player, I want to talk with campus characters and have them remember
-my social interactions so that my relationships feel connected across campus.
-
-Responsible team member: Xinjia Shen
-
-### User Story 4.2 — Check Campus Email
-As a student player, I want to check my in-game campus email so that I can
-keep track of assignment deadlines and decide how to respond to job offers.
-
-Responsible team member: Xinjia Shen
+> **Note for the team:** The map connects every story: each story has its own building, and the player opens that
+> story's screens from it.
+> - **MVP:** a clickable campus map (UC5.1).
+> - **Stretch:** a character that walks on the map.
+>
+> Proposal for sharing the work: each lead builds their own building and its screens. One member should
+> coordinate the map itself (the main window, the layout, and UC5.1) so that the pieces fit together.
 
 ---
 ## Use Cases
-### Use Case 1.1 — Choose a major and enrol in courses
+### Use Case 1.1 — Choose a major and enrol in courses (US1)
 **Primary actor:** student player
 
 **Preconditions:**
@@ -98,7 +166,10 @@ Responsible team member: Xinjia Shen
 - 5a. The selections do not meet the enrolment rules.
   The system explains what must change and allows the player to revise their selections. No invalid plan is recorded
 
-### Use Case 1.2 — Attend a class
+> **Note for the lead:** If you add rules from the US1 note (required courses, conflicts, drop a course), list
+> each one as an extension under step 5, or add a second use case (for example, UC1.2 Drop a course).
+
+### Use Case 2.1 — Attend a class (US2)
 **Primary actor:** Student player
 
 **Preconditions:**
@@ -129,7 +200,11 @@ Responsible team member: Xinjia Shen
 - 5a. The answer is incorrect.
   The system explains the correct answer. The class is still recorded as completed, with the actual participation result.
 
-### Use Case 1.3 — Take a course exam
+> **Note for the lead:** This draft was written by Lanxin when US1 covered all academics. Please review it and
+> make it yours. Possible additions: an extension for when questions cannot be fetched (fallback questions),
+> and the time or Energy cost of attending class.
+
+### Use Case 3.1 — Take a course exam (US3)
 **Primary actor:** Student player
 
 **Preconditions:**
@@ -162,12 +237,15 @@ Responsible team member: Xinjia Shen
 - 8a. The system cannot record the result.
   The system reports that finalization failed and allows a retry without awarding the result twice.
 
-### Use Case 2.1 — End the day
+> **Note for the lead:** This draft was also written by Lanxin. Please review it. Extensions are usually listed in
+> step order (4a currently comes after 5a). Consider a second use case such as *View transcript and GPA*.
+
+### Use Case 4.1 — End the day (US4)
 **Primary actor:** Player
 
 **Preconditions:**
 - A game is in progress
-- The player is at home (their residence room or off-campus apartment).
+- The player is in their residence room.
 
 **Trigger:** The player asks to sleep.
 
@@ -176,59 +254,36 @@ and progress is saved.
 
 **Main success scenario:**
 1. The player asks to sleep.
-2. The system checks that the player is at home.
+2. The system checks that the player is in their residence room.
 3. The system advances the calendar to the next day and determines whether it is an A day or a B day.
 4. The system restores the player’s Energy according to when the player went to sleep.
 5. The system retrieves the historical weather for the real date that corresponds to the new day and converts it into a
 game condition: clear, cloudy, rain, or snow.
-6. The system applies the morning commute cost for the player’s housing and the day’s weather.
-7. The system saves the game.
-8. The system shows the player waking up on the new day, with the day number, day type, weather, any exam scheduled
+6. The system saves the game.
+7. The system shows the player waking up on the new day, with the day number, day type, weather, any exam scheduled
 today, and updated stats.
 
 **Extensions:**
-- 2a. The player is not at home.
+- 2a. The player is not in their residence room.
     1. The system explains that the player must go home to sleep.
     2. The use case ends and the day does not change.
 - 3a. The day that just ended was the last day of a week, but not of the term.
     1. The system shows the weekend card, and the player chooses an activity.
     2. The system applies the activity’s effect, and the use case continues at step 3.
 - 3b. The day that just ended was the last day of the term.
-    1. The system charges rent and shows the break card, or the ending if this was the final term.
+    1. The system shows the break card, or the ending if this was the final term.
     2. The system starts the next term on day 1, and the use case continues at step 4.
 - 5a. The weather source is unavailable.
     1. The system uses its bundled copy of the same historical weather data.
     2. The use case continues at step 6.
-- 7a. The system cannot save the game.
+- 6a. The system cannot save the game.
     1. The system explains that progress was not saved.
-    2. The use case continues at step 8.
+    2. The use case continues at step 7.
 
-### Use Case 2.2 — Choose where to live
-**Primary actor:** Player
+> **Note for the lead:** The commute step and rent were removed with housing. Once the weather effect is decided,
+> add it back as a step after step 5.
 
-**Preconditions:**
-- The player is creating a new game.
-- The setup wizard has reached the housing step.
-
-**Trigger:** The player asks to choose their housing.
-
-**Success outcome:** The player’s housing is recorded and their starting location is set.
-
-**Main success scenario:**
-1. The system shows the housing options (Residence and Off-campus), each with its rent per term, daily commute cost,
-and a short description.
-2. The player selects an option.
-3. The system records the player’s housing.
-4. The system sets the player’s starting location: the residence building, or the transit stop for off-campus players.
-5. The system moves the wizard to the next step.
-
-**Extensions:**
-- 2a.
-    1. The player asks to go back to the previous step.
-    2. The system returns to the previous step without recording a choice.
-    3. The use case ends.
-
-### Use Case 2.3 — Load a saved game
+### Use Case 4.2 — Load a saved game (US4)
 **Primary actor:** Player
 
 **Preconditions:**
@@ -242,8 +297,8 @@ and a short description.
 1. The player asks to continue.
 2. The system finds the save file.
 3. The system reads the save file and checks that it is valid.
-4. The system restores the game state: player profile, stats, timetable, calendar, friendships, and the
-term’s stored weather.
+4. The system restores the game state: player profile, stats, major and courses, course progress, grades, calendar,
+and the term’s stored weather.
 5. The system shows the player at home on the saved day.
 
 **Extensions:**
@@ -254,163 +309,89 @@ term’s stored weather.
     1. The system explains that the save cannot be loaded.
     2. The system does not change the file, and the use case ends.
 
-### Use Case 3A — Buy Food and Eat (UC3A)
-
-**Primary actor:** Player
-
-**Trigger:** The player interacts with the food truck or café counter and chooses to eat.
-
-**Preconditions:** A game is in progress, and the location is open in the current time slot.
-
-**Main success flow:**
-1. The game obtains today's menu through the menu gateway and shows meal prices and Energy gains.
-2. The player selects a meal.
-3. The game checks the player's Money, then deducts the price, restores Energy, and uses part of the time slot.
-4. The HUD shows the updated Money, Energy, and time.
-
-**Alternatives:** If the meal API fails, use the bundled fallback menu. If the player cannot afford a meal, show the shortfall and do not deduct Money or advance time. If the location is closed, show its opening hours.
-
-**Success outcome:** The player has eaten; Money decreases by the meal price, Energy increases, and time advances.
-
-### Use Case 3B — Work a Café Shift (UC3B)
-
-**Primary actor:** Player
-
-**Trigger:** The player interacts with the café counter and chooses to work a shift.
-
-**Preconditions:** A game is in progress, and the café is open in the current time slot.
-
-**Main success flow:**
-1. The game checks that the player has enough Energy and whether the shift overlaps a scheduled class.
-2. Customers order menu items; the player chooses the matching items.
-3. The game pays Money based on correct orders, deducts Energy, uses the time slot, and updates the HUD.
-
-**Alternatives:** If the player lacks Energy, explain why the shift cannot start. If a shift overlaps a class, warn that the class will be missed and ask for confirmation; if confirmed, UC1 handles the absence. If the café is closed, show its opening hours. If meal data is unavailable, use the bundled fallback menu for customer orders.
-
-**Success outcome:** The completed shift increases Money according to correct orders, decreases Energy, and advances time.
-
-### Use Case 4.1 — Talk with an NPC
+### Use Case 5.1 — Go to a campus location (US5)
 **Primary actor:** Player
 
 **Preconditions:**
 - A game is in progress.
-- The player is near an NPC.
+- The campus map is displayed.
 
-**Trigger:** The player asks to talk with the NPC.
+**Trigger:** The player selects a building on the campus map.
 
-**Success outcome:** The player receives an NPC reply, the completed
-conversation is recorded, and Friendship with that NPC increases. Later
-conversations with other NPCs can refer to characters the player has met.
+**Success outcome:** The player is at the selected building and sees what they can do there.
 
 **Main success scenario:**
-1. The player asks to talk with an NPC.
-2. The system confirms that the NPC is available and shows the current
-   Friendship level.
-3. The player sends a message.
-4. The system gives an in-character reply. The reply may refer to another
-   character the player has previously talked with.
-5. The system records who the player talked with and the conversation.
-6. The system increases Friendship with this NPC and advances game time.
-7. The system shows the reply and updated Friendship level.
+1. The player selects a building on the map.
+2. The system checks that the building is open in the current time slot.
+3. The system moves the player to the building and applies the Energy cost of walking in today's weather.
+4. The system shows the building and the actions available there.
 
 **Extensions:**
-- **2a. The NPC is unavailable:** The system explains this and ends the
-  interaction without changing Friendship or time.
-- **3a. The message is empty or too long:** The system asks for a revised
-  message and returns to step 3 without changing game state.
-- **4a. A suitable reply cannot be obtained:** The system provides an
-  in-character fallback reply and continues at step 5.
-- **4b. The player leaves before a reply is ready:** The late reply is
-  ignored; no conversation is recorded and game state does not change.
-- **6a. Friendship reaches the NPC's event threshold:** The system unlocks
-  that NPC's event once and informs the player.
+- 2a. The building is closed.
+    1. The system shows the building's opening hours.
+    2. The player stays where they are, and the use case ends.
+- 3a. The player does not have enough Energy to walk there.
+    1. The system explains that the player is too tired and suggests going home to sleep.
+    2. The player stays where they are, and the use case ends.
 
-### Use Case 4.2 — Check Campus Email
-
-**Primary actor:** Player
-
-**Preconditions:**
-- A game is in progress.
-- The player has an in-game campus mailbox.
-
-**Trigger:** The player opens the mailbox.
-
-**Success outcome:** The player can read delivered emails. Reading a course
-reminder shows the relevant assignment and due date. If the player replies
-to a job offer, the result changes their in-game Money and the offer is
-marked resolved.
-
-**Main success scenario:**
-1. The player opens the mailbox.
-2. The system lists delivered emails and identifies unread messages.
-3. The player opens a course reminder.
-4. The system shows the course, assignment, and due date.
-5. The system marks the reminder as read.
-
-**Extensions:**
-- **2a. The mailbox is empty:** The system shows that there is no mail.
-- **3a. The player opens a job-offer email:**
-    1. The system shows the offer.
-    2. The player chooses to reply.
-    3. The system determines whether the player gains or loses Money.
-    4. The system applies the result, shows what happened, and marks the
-       offer resolved so it cannot be answered again.
-- **3b. The player ignores a job offer:** Money does not change and the
-  offer remains unresolved.
-- **3c. The player opens an already resolved offer:** The system shows the
-  previous result but does not allow another reply.
+> **Note for the team (proposal):** Each story gets one building on the map, for example: Residence (US4, sleep),
+> Registrar's Office (US1, choose courses), Lecture Hall (US2, attend class), and Exam Centre (US3, write exams).
+> Building names and the map layout are still open.
 
 ---
 ## Minimal Viable Product (MVP)
 | Team Member | MVP Use Case |
 |:-------------:|:--------------|
-| Zhenbin An | UC3A — Buy food and eat (spend Money); UC3B — Work a café shift (earn Money) |
-| Yuxiang Yuan | UC2.1 — End the day (calendar, historical weather, commute, auto-save); UC2.3 — Load a saved game |
-| Lanxin Fu | UC1.1, UC1.2, UC1.3 |
-| Name | Use Case |
+| *TBA* | UC1.1 — Choose a major and enrol in courses |
+| *TBA* | UC2.1 — Attend a class |
+| *TBA* | UC3.1 — Take a course exam |
+| Yuxiang Yuan | UC4.1 — End the day (calendar, historical weather, auto-save); UC4.2 — Load a saved game |
+| Shared | UC5.1 — Go to a campus location (map) |
 
 ---
 ## Entities
-### MenuItem (UC3)
-Represents a meal offered on the menu, with a name, price, and Energy gain. The game sets prices and Energy values; 
-provider-specific API data stays outside the entity.
+> **Note for the team:** The course asks for each entity's name, instance variables, and relevant methods (point
+> form or UML). The academic entities below are placeholders. The US1–US3 leads should agree on them together,
+> because all three stories share them.
 
-### Game Calendar (UC2)
+### Course (US1, shared with US2 and US3)
+*To be defined by the US1 lead.* Possible contents: course code, name, which days it meets, and the question
+category it uses.
+
+### AcademicRecord (US2 and US3)
+*To be defined by the US2 and US3 leads.* Possible contents: the player's enrolled courses, the progress for each
+course (written by US2), and the grades and GPA (written by US3).
+
+### Game Calendar (US4)
 Represents the current point in game time: year, term, day, and time slot (Morning, Afternoon, Evening, Late Night).
 It knows whether the current day is an A day or a B day, whether it is an exam day (day 12 or day 24), and whether
 the week or term has ended. Other use cases use it to spend time slots.
 
-### Housing (UC2)
-Represents where the player lives: Residence or Off-campus. Each type has a rent per term and a base commute cost.
-It calculates the morning commute cost for a given weather condition (Residence has no commute cost).
-
-### DailyWeather (UC2)
+### DailyWeather (US4)
 A value object for one game day's weather: the real date it is based on, the game condition (clear, cloudy, rain,
 or snow), and the high and low temperatures. The conversion from raw weather data to a game condition is done
 outside the entity, so provider-specific API data never enters the domain model.
 
-### Player (Shared)
-Represents the student: name, major, housing, location, and stats (GPA, Money, Energy). UC2 restores Energy after
-sleep, applies commute costs, and charges rent; other use cases update the remaining stats.
+### CampusLocation (US5)
+Represents a building on the campus map: its name, the time slots when it is open, and whether walking there is
+outdoors (so the weather applies). The player's current location is one of these.
 
-### Entity 2
-### Entity 3
-(Add additional entities as needed.)
+### Player (Shared)
+Represents the student: name, major, location, and stats (GPA, Energy). US4 restores Energy after sleep; other
+stories update the remaining stats.
+
+> **Note for the team:** Money was only used by food, work, and rent, which are now removed. Proposal: drop it.
 
 ---
 ## API Usage
 
-**Planned UC2 API:** [Open-Metro](https://open-meteo.com/en/docs/historical-weather-api)
+**Planned US4 API:** [Open-Meteo](https://open-meteo.com/en/docs/historical-weather-api)
 
-**How it will be used:** The game uses real Toronto weather from 2022–2026. Each in-game day is matched
-to a real date, and that day's weather (clear, cloudy, rain, or snow) is shown in the game and affects the
-player's commute. If the API is unavailable, the game uses a saved copy of the same data.
+**How it will be used:** Suggestion only: real Toronto weather for each game day.
 
-**Planned UC3 API:** [TheMealDB](https://www.themealdb.com/api.php)
+**Planned US2/US3 API:** [Open Trivia DB](https://opentdb.com/api_config.php)
 
-**How it will be used:** A menu gateway obtains meal data for the food truck and café and converts selected meals into
-`MenuItem` values. A bundled menu keeps UC3 playable when the service is unavailable. Access requirements and a 
-successful Java request still need to be verified before integration.
+**How it will be used:** Suggestion only: practice questions in class and exam questions.
 
 **API Name:**
 **Documentation:** [Link]
@@ -422,9 +403,34 @@ successful Java request still need to be verified before integration.
 ### Sequence Diagrams
 
 ---
+## Future Extensions
+- **Choose where to live:** Residence or off-campus housing, with rent per term and a weather-dependent daily
+  commute (previously Use Case 2.2).
+- **Import real courses:** Let students enter the courses they actually plan to take, so the preview matches their
+  real next term.
+
+---
+## Development Plan (proposal)
+**Week 1:** Agree on the shared entities (`Course`, `Player`, `AcademicRecord`, `GameCalendar`) and the interfaces
+between stories, such as the question source shared by US2 and US3. Build the main window and the clickable map.
+Each lead checks that their API can be called from Java. Set up Checkstyle.
+
+**Week 2:** Each lead finishes their MVP use case (interactor, controller, presenter, view, and tests). Every PR is
+reviewed by at least one other member.
+
+**Week 3:** Integrate everything, and make sure saving covers every story's data. Do stretch goals if time allows.
+Prepare slides and the demo; each member practises explaining the architecture of their own part.
+
+**Working with AI coding tools:**
+- The team designs entities and interfaces by hand; AI implements against them.
+- Only change files in your own story. Changes to shared files (entities, main window) go in their own PR.
+- A reviewer should be able to explain what a PR does before approving it.
+- Write at least one test for each extension in your use case.
+
+---
 ## How to Run
 [Instructions for running the program.]
 
 ---
 ## Notes
-[Any addi
+[Any additional notes.]
