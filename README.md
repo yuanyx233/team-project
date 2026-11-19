@@ -21,14 +21,15 @@ at the end of the term.
 > Our previous scope (academics, housing, food and work, NPCs, and email) was too large. This draft keeps two
 > themes, **academics** (main focus) and **daily life and saving**, and splits them into **four user stories, one
 > per member**, as the course requires ("one user story per team member"). The rubric gives ≤ 1/5 for scope if
-> there are fewer user stories than members. A fifth story, the **campus map (US5)**, is shared by everyone.
+> there are fewer user stories than members. A fifth story, the **St. George Street map (US5)**, is shared by
+> everyone.
 >
 > - Removed: food and work (old US3), NPCs and email (old US4.1/4.2), and housing choice (old UC2.2, moved to
 >   *Future Extensions*). The removed text is still in git history.
 > - Each section has a **Note for the lead** box with suggestions. The lead of each section decides the final
 >   wording. Please delete the note boxes once your section is done.
 > - Only US4 has a lead so far. The leads for US1–US3 are **TBA**.
-> - **Time budget:** We have about 2–3 weeks of part-time work, plus the campus map. Each story is split into
+> - **Time budget:** We have about 2–3 weeks of part-time work, plus the map. Each story is split into
 >   **MVP** (must work for the demo) and **Stretch** (only if time allows). With AI-assisted coding, writing code
 >   is not the bottleneck. Understanding our own code for Q&A, and integrating five parts, are.
 
@@ -50,10 +51,10 @@ weather.
 
 **Why we are building it:** When students plan their next term, it is hard to imagine what a course load will
 actually feel like until they are already living it. Stressdew Valley lets any student try out a term before
-committing to it: pick a set of courses, play through the term, and see how the workload affects their daily
-Energy, their exam results, and their GPA. Along the way, the game shows that steady class attendance pays off at
-exam time and that time and energy need to be planned. If a term does not go well, the player can start over with
-a different plan. There is no real-world cost.
+committing to it: choose their year of study and a set of courses, play through the term, and see how the
+workload affects their daily Energy, their exam results, and their GPA. Along the way, the game shows that steady
+class attendance pays off at exam time and that time and energy need to be planned. If a term does not go well,
+the player can start over with a different plan. There is no real-world cost.
 
 > **Note for the team:** This is a proposed motivation. The TA said the project should not be *just* a game, so
 > each claim above maps to a feature: course load → US1, steady attendance → US2, exam results and GPA → US3,
@@ -71,10 +72,17 @@ Responsible team member: *TBA*
 > **Note for the lead:** On its own, choosing courses may look small next to the other stories. The rubric wants
 > each story to be *significant*. Our motivation ("try out a term before committing") also depends on this story,
 > so courses need to differ from each other.
-> - **MVP:** a small course catalogue where each course has a difficulty and workload; enrolment rules (course
->   limit, timetable conflicts, required courses for the major); viewing the timetable (classes and exam days
->   come from it).
+> - **MVP:** choosing a year of study (1–4) at the start of a new game; a small course catalogue for each year,
+>   where each course has a difficulty and workload; enrolment rules (course limit, timetable conflicts, required
+>   courses for the major); viewing the timetable (classes and exam days come from it). The game covers **one
+>   term**; a full academic year is a stretch goal for US4.
 > - **Stretch:** dropping or swapping a course during the term.
+>
+> **Question difficulty (proposal):** MMLU has no year levels, so we map each course to an MMLU subject by hand,
+> stored in the course catalogue (data, not code). Higher years use harder subjects, for example in CS:
+> `high_school_computer_science` (year 1) → `college_computer_science` (year 2) → `computer_security` (year 3) →
+> `machine_learning` (year 4). A course's difficulty can also change game rules (more exam questions, a higher pass
+> mark, more Energy per class).
 >
 > This story owns the shared academic data (majors, courses, timetable), so please agree on it early with the
 > US2 and US3 leads.
@@ -86,14 +94,18 @@ understanding of each course before its exam.
 Responsible team member: *TBA*
 
 > **Note for the lead:** The key design point is how this story differs from US3. Suggested split: attending class
-> is *practice*. It changes course progress but **never** changes grades or GPA.
-> - **MVP:** attend a scheduled class, answer practice questions, gain course progress, spend Energy. Questions
->   come through a question source shared with US3: start with a bundled question bank, then connect the trivia
->   API (see *API Usage*).
-> - **Stretch:** consequences for missing a class; class material before the question.
+> is *practice*. It **records** a coursework score for each class, but it never calculates grades or GPA (that is
+> US3's job).
+> - **MVP:** attend a scheduled class, answer practice questions, record the coursework score, spend Energy. A
+>   missed class counts as 0. Questions come through a question source shared with US3: start with a bundled
+>   question bank, then connect the MMLU question API (see *API Usage*).
+> - **Stretch:** class material before the question.
 >
-> Things to decide: what "progress" means (classes attended, correct answers, a mastery score), since US3 reads it;
-> and how a course maps to a question category. Agree on the shared question source with the US3 lead in week 1.
+> **Practice questions (proposal):** use the same MMLU subject as the course's exam, so practice prepares for the
+> exam. To avoid repeats, split each subject's `test` set: rows 0–49 for practice and rows 50–99 for exams. One
+> term needs about 20–25 questions per course, and each subject has about 100. The shared question source could
+> look like `getQuestions(subject, purpose, count)`, where `purpose` is `PRACTICE` or `EXAM`; only the gateway
+> knows the row ranges. Agree on it with the US3 lead in week 1.
 
 ### User Story 3 — Write Exams and Track GPA
 As a student player, I want to write exams for my courses and see my grades and GPA so that I know how well I am
@@ -101,14 +113,22 @@ doing academically.
 
 Responsible team member: *TBA*
 
-> **Note for the lead:** This story is *assessment*: it is the only one that changes grades and GPA.
-> - **MVP:** write an exam on exam day, with questions from the question source shared with US2; calculate the
->   course grade; update GPA; show the result.
+> **Note for the lead:** This story is *assessment*: it is the only one that calculates grades and GPA.
+> - **MVP:** write a final exam on exam day, with questions from the question source shared with US2; calculate
+>   the course grade from coursework and the final; update GPA; show the result.
 > - **Stretch:** a transcript screen; a midterm.
 >
-> Things to decide: the grading rule (exam score only, or combined with progress from US2?); the GPA scale (for
-> example, the U of T 4.0 scale); and what happens if the player misses an exam day (exam days come from the
-> calendar in US4).
+> **Grading (proposal):**
+> - Course grade = coursework (practice scores recorded by US2, missed classes count as 0) + final exam, for
+>   example 40% + 60%. This matches our motivation: steady attendance pays off. It also helps because MMLU
+>   questions are hard.
+> - Convert the percentage to grade points with the U of T 4.0 scale (85–100 = 4.0, 80–84 = 3.7, 77–79 = 3.3,
+>   73–76 = 3.0, 70–72 = 2.7, 67–69 = 2.3, 63–66 = 2.0, 60–62 = 1.7, 57–59 = 1.3, 53–56 = 1.0, 50–52 = 0.7,
+>   0–49 = 0.0). Term GPA = credit-weighted average of grade points.
+> - Different courses could use different weights through a `GradingPolicy` interface (Strategy pattern). The
+>   rubric gives credit for a design pattern beyond the starter code.
+>
+> Things to decide: the final weights; and what happens if the player misses the final (0, or INC?).
 
 ### User Story 4 — Live Day by Day and Keep My Progress
 As a player, I want each day to pass with real-world weather and have my progress saved so that my university
@@ -121,17 +141,18 @@ Responsible team member: Yuxiang Yuan
 > - **MVP:** sleep to start the next day and restore Energy; real weather that affects play (walking outside in
 >   rain or snow costs extra Energy, see US5), so the weather API matters to gameplay rather than being
 >   display-only; auto-save and load.
-> - **Stretch:** A/B days; the weekend card; multiple terms and an ending.
+> - **Stretch:** A/B days; the weekend card; a full academic year (two terms) and an ending.
 
-### User Story 5 — Explore the Campus Map
-As a player, I want to move around a campus map and visit different buildings so that I can choose where to spend
-my time each day.
+### User Story 5 — Explore St. George Street
+As a player, I want to move along St. George Street and visit the buildings on it so that I can choose where to
+spend my time each day.
 
 Responsible team member: Shared (all members)
 
-> **Note for the team:** The map connects every story: each story has its own building, and the player opens that
+> **Note for the team:** The map is **one street (St. George Street)**, not the whole campus, to keep the work
+> small. The map connects every story: each story has its own building on the street, and the player opens that
 > story's screens from it.
-> - **MVP:** a clickable campus map (UC5.1).
+> - **MVP:** a clickable map of St. George Street (UC5.1).
 > - **Stretch:** a character that walks on the map.
 >
 > Proposal for sharing the work: each lead builds their own building and its screens. One member should
@@ -297,7 +318,7 @@ today, and updated stats.
 1. The player asks to continue.
 2. The system finds the save file.
 3. The system reads the save file and checks that it is valid.
-4. The system restores the game state: player profile, stats, major and courses, course progress, grades, calendar,
+4. The system restores the game state: player profile, stats, major and courses, coursework scores, grades, calendar,
 and the term’s stored weather.
 5. The system shows the player at home on the saved day.
 
@@ -314,9 +335,9 @@ and the term’s stored weather.
 
 **Preconditions:**
 - A game is in progress.
-- The campus map is displayed.
+- The St. George Street map is displayed.
 
-**Trigger:** The player selects a building on the campus map.
+**Trigger:** The player selects a building on the St. George Street map.
 
 **Success outcome:** The player is at the selected building and sees what they can do there.
 
@@ -334,9 +355,9 @@ and the term’s stored weather.
     1. The system explains that the player is too tired and suggests going home to sleep.
     2. The player stays where they are, and the use case ends.
 
-> **Note for the team (proposal):** Each story gets one building on the map, for example: Residence (US4, sleep),
-> Registrar's Office (US1, choose courses), Lecture Hall (US2, attend class), and Exam Centre (US3, write exams).
-> Building names and the map layout are still open.
+> **Note for the team (proposal):** Each story gets one building on St. George Street, for example: a residence
+> (US4, sleep), Sidney Smith Hall (US1, choose courses), Bahen Centre (US2, attend class), and Robarts Library or
+> an exam hall (US3, write exams). Which buildings to use and the map layout are still open.
 
 ---
 ## Minimal Viable Product (MVP)
@@ -355,12 +376,12 @@ and the term’s stored weather.
 > because all three stories share them.
 
 ### Course (US1, shared with US2 and US3)
-*To be defined by the US1 lead.* Possible contents: course code, name, which days it meets, and the question
-category it uses.
+*To be defined by the US1 lead.* Possible contents: course code, name, year level, difficulty, which days it
+meets, and the MMLU subject its questions come from.
 
 ### AcademicRecord (US2 and US3)
-*To be defined by the US2 and US3 leads.* Possible contents: the player's enrolled courses, the progress for each
-course (written by US2), and the grades and GPA (written by US3).
+*To be defined by the US2 and US3 leads.* Possible contents: the player's enrolled courses, the coursework scores
+for each course (written by US2), and the final exam scores, course grades, and GPA (written by US3).
 
 ### Game Calendar (US4)
 Represents the current point in game time: year, term, day, and time slot (Morning, Afternoon, Evening, Late Night).
@@ -373,8 +394,8 @@ or snow), and the high and low temperatures. The conversion from raw weather dat
 outside the entity, so provider-specific API data never enters the domain model.
 
 ### CampusLocation (US5)
-Represents a building on the campus map: its name, the time slots when it is open, and whether walking there is
-outdoors (so the weather applies). The player's current location is one of these.
+Represents a building on the St. George Street map: its name, the time slots when it is open, and whether walking
+there is outdoors (so the weather applies). The player's current location is one of these.
 
 ### Player (Shared)
 Represents the student: name, major, location, and stats (GPA, Energy). US4 restores Energy after sleep; other
@@ -389,9 +410,11 @@ stories update the remaining stats.
 
 **How it will be used:** Suggestion only: real Toronto weather for each game day.
 
-**Planned US2/US3 API:** [Open Trivia DB](https://opentdb.com/api_config.php)
+**Planned US2/US3 API:** [Hugging Face Datasets API](https://huggingface.co/docs/dataset-viewer/index) with the
+[MMLU dataset](https://huggingface.co/datasets/cais/mmlu)
 
-**How it will be used:** Suggestion only: practice questions in class and exam questions.
+**How it will be used:** Suggestion only: university-level multiple-choice questions for classes and exams, with
+each course mapped to an MMLU subject.
 
 **API Name:**
 **Documentation:** [Link]
@@ -412,8 +435,8 @@ stories update the remaining stats.
 ---
 ## Development Plan (proposal)
 **Week 1:** Agree on the shared entities (`Course`, `Player`, `AcademicRecord`, `GameCalendar`) and the interfaces
-between stories, such as the question source shared by US2 and US3. Build the main window and the clickable map.
-Each lead checks that their API can be called from Java. Set up Checkstyle.
+between stories, such as the question source shared by US2 and US3. Build the main window and the clickable
+St. George Street map. Each lead checks that their API can be called from Java. Set up Checkstyle.
 
 **Week 2:** Each lead finishes their MVP use case (interactor, controller, presenter, view, and tests). Every PR is
 reviewed by at least one other member.
