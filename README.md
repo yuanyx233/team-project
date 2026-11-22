@@ -45,8 +45,7 @@ at the end of the term.
 ### Domain
 University life simulation, presented as a casual top-down game
 
-**Stressdew Valley** is a casual simulation game about a term at university. The player chooses a major and
-courses, attends classes, writes exams, and manages limited time and Energy from day to day, with real Toronto
+**Stressdew Valley** is a casual simulation game about a term at university. The player chooses a major, attends classes, writes exams, and manages limited time and Energy from day to day, with real Toronto
 weather.
 
 **Why we are building it:** When students plan their next term, it is hard to imagine what a course load will
@@ -56,357 +55,270 @@ workload affects their daily Energy, their exam results, and their GPA. Along th
 class attendance pays off at exam time and that time and energy need to be planned. If a term does not go well,
 the player can start over with a different plan. There is no real-world cost.
 
-> **Note for the team:** This is a proposed motivation. The TA said the project should not be *just* a game, so
-> each claim above maps to a feature: course load → US1, steady attendance → US2, exam results and GPA → US3,
-> daily time and Energy → US4. Our course catalogue is predefined, so we should say "a similar course load" rather
-> than "your real next term". Importing real courses can be a future extension.
-
 ---
 ## User Stories
-### User Story 1 — Choose a Major and Courses
-As a student player, I want to choose my major and enrol in courses for the term so that I have a timetable that
-shapes my school days.
+### US1 — Choose a Major
+As a student player, I want to choose my major so that I can personalize my university experience and receive its predefined courses.
 
-Responsible team member: *TBA*
+- **Building:** Registrar’s Office (Sidney Smith)
+- **Responsible team member:** Lanxin Fu
+- **MVP:** Choose one predefined major, view its attached courses, and confirm the selection. The system automatically assigns those courses.
+- **Outside MVP:** Individual course selection, changing majors after confirmation, prerequisites, and timetable conflicts.
 
-> **Note for the lead:** On its own, choosing courses may look small next to the other stories. The rubric wants
-> each story to be *significant*. Our motivation ("try out a term before committing") also depends on this story,
-> so courses need to differ from each other.
-> - **MVP:** choosing a year of study (1–4) at the start of a new game; a small course catalogue for each year,
->   where each course has a difficulty and workload; enrolment rules (course limit, timetable conflicts, required
->   courses for the major); viewing the timetable (classes and exam days come from it). The game covers **one
->   term**; a full academic year is a stretch goal for US4.
-> - **Stretch:** dropping or swapping a course during the term.
->
-> **Question difficulty (proposal):** MMLU has no year levels, so we map each course to an MMLU subject by hand,
-> stored in the course catalogue (data, not code). Higher years use harder subjects, for example in CS:
-> `high_school_computer_science` (year 1) → `college_computer_science` (year 2) → `computer_security` (year 3) →
-> `machine_learning` (year 4). A course's difficulty can also change game rules (more exam questions, a higher pass
-> mark, more Energy per class).
->
-> This story owns the shared academic data (majors, courses, timetable), so please agree on it early with the
-> US2 and US3 leads.
+### US2 — Complete a Class Challenge
+As a student player, I want to complete a class challenge for a course attached to my major so that I can earn preparation points before its exam.
 
-### User Story 2 — Attend Classes
-As a student player, I want to attend my scheduled classes and answer practice questions so that I can build up my
-understanding of each course before its exam.
+- **Building:** Lecture Hall (Bahen Centre)
+- **Responsible team member:** Xinjia Shen
+- **MVP:** Complete one short challenge per assigned course, receive immediate feedback, spend energy, and earn preparation points.
+- **Outside MVP:** Repeated challenges for additional rewards and scheduled classes.
 
-Responsible team member: *TBA*
+### US3 — Take a Course Exam
+As a student player, I want to take an exam for a course attached to my major and receive my result so that I can earn a course grade.
 
-> **Note for the lead:** The key design point is how this story differs from US3. Suggested split: attending class
-> is *practice*. It **records** a coursework score for each class, but it never calculates grades or GPA (that is
-> US3's job).
-> - **MVP:** attend a scheduled class, answer practice questions, record the coursework score, spend Energy. A
->   missed class counts as 0. Questions come through a question source shared with US3: start with a bundled
->   question bank, then connect the MMLU question API (see *API Usage*).
-> - **Stretch:** class material before the question.
->
-> **Practice questions (proposal):** use the same MMLU subject as the course's exam, so practice prepares for the
-> exam. To avoid repeats, split each subject's `test` set: rows 0–49 for practice and rows 50–99 for exams. One
-> term needs about 20–25 questions per course, and each subject has about 100. The shared question source could
-> look like `getQuestions(subject, purpose, count)`, where `purpose` is `PRACTICE` or `EXAM`; only the gateway
-> knows the row ranges. Agree on it with the US3 lead in week 1.
+- **Building:** Exam Centre
+- **Responsible team member:** Zhenbin An
+- **MVP:** Complete one exam per assigned course, spend energy, and receive a recorded score and course grade. Preparation points can unlock one optional hint.
+- **Outside MVP:** Exam dates, timers, retakes, and GPA calculation.
 
-### User Story 3 — Write Exams and Track GPA
-As a student player, I want to write exams for my courses and see my grades and GPA so that I know how well I am
-doing academically.
+### US4 — Rest and Save Progress
+As a student player, I want to end my study session by resting and saving my progress so that I can recover energy and continue later.
 
-Responsible team member: *TBA*
+- **Building:** Innis Residence
+- **Responsible team member:** Yuxiang Yuan
+- **MVP:** Restore energy, save completed progress, and continue from the saved checkpoint when reopening the game.
+- **Outside MVP:** Sleep schedules, day progression, and saving unfinished challenges or exams.
 
-> **Note for the lead:** This story is *assessment*: it is the only one that calculates grades and GPA.
-> - **MVP:** write a final exam on exam day, with questions from the question source shared with US2; calculate
->   the course grade from coursework and the final; update GPA; show the result.
-> - **Stretch:** a transcript screen; a midterm.
->
-> **Grading (proposal):**
-> - Course grade = coursework (practice scores recorded by US2, missed classes count as 0) + final exam, for
->   example 40% + 60%. This matches our motivation: steady attendance pays off. It also helps because MMLU
->   questions are hard.
-> - Convert the percentage to grade points with the U of T 4.0 scale (85–100 = 4.0, 80–84 = 3.7, 77–79 = 3.3,
->   73–76 = 3.0, 70–72 = 2.7, 67–69 = 2.3, 63–66 = 2.0, 60–62 = 1.7, 57–59 = 1.3, 53–56 = 1.0, 50–52 = 0.7,
->   0–49 = 0.0). Term GPA = credit-weighted average of grade points.
-> - Different courses could use different weights through a `GradingPolicy` interface (Strategy pattern). The
->   rubric gives credit for a design pattern beyond the starter code.
->
-> Things to decide: the final weights; and what happens if the player misses the final (0, or INC?).
+## US5 - Shared Campus Navigation
 
-### User Story 4 — Live Day by Day and Keep My Progress
-As a player, I want each day to pass with real-world weather and have my progress saved so that my university
-life feels continuous and I can pick up where I left off.
+A small, clickable St. George Street connects the four buildings. Each member implements their building’s activity screen and its connection to the shared navigation.
 
-Responsible team member: Yuxiang Yuan
+Navigation does not consume energy. Residence remains accessible at zero energy.
 
-> **Note for the lead:** With housing removed, every player lives in residence, so there is no commute cost and no
-> rent.
-> - **MVP:** sleep to start the next day and restore Energy; real weather that affects play (walking outside in
->   rain or snow costs extra Energy, see US5), so the weather API matters to gameplay rather than being
->   display-only; auto-save and load.
-> - **Stretch:** A/B days; the weekend card; a full academic year (two terms) and an ending.
-
-### User Story 5 — Explore St. George Street
-As a player, I want to move along St. George Street and visit the buildings on it so that I can choose where to
-spend my time each day.
-
-Responsible team member: Shared (all members)
-
-> **Note for the team:** The map is **one street (St. George Street)**, not the whole campus, to keep the work
-> small. The map connects every story: each story has its own building on the street, and the player opens that
-> story's screens from it.
-> - **MVP:** a clickable map of St. George Street (UC5.1).
-> - **Stretch:** a character that walks on the map.
->
-> Proposal for sharing the work: each lead builds their own building and its screens. One member should
-> coordinate the map itself (the main window, the layout, and UC5.1) so that the pieces fit together.
+Walking animation is a stretch goal. Opening hours, weather effects, and travel costs are outside the MVP.
 
 ---
 ## Use Cases
-### Use Case 1.1 — Choose a major and enrol in courses (US1)
-**Primary actor:** student player
+
+### UC1 — Choose a Major
+
+**Supports:** US1  
+**Location:** Registrar’s Office  
+**Primary actor:** Student player
 
 **Preconditions:**
-- A game has started
-- The player has not finalized their academic choices for the current semester
-- The game has a predefined catalogue of majors and courses
+- A game has started.
+- The player has not confirmed a major.
+- A predefined catalogue of majors and their attached courses is available.
 
-**Trigger:** The player asks to set up their academic plan
+**Trigger:** The player requests to choose a major.
 
-**Success outcome:** The selected major and courses are recorded, and the player can view their confirmed academic plan.
+**Success outcome:** The selected major and its attached courses are assigned to the player.
 
 **Main success scenario:**
-1. The system displays the available majors.
+1. The system displays the available majors and their descriptions.
 2. The player selects a major.
-3. The system displays the courses available for that major and the permitted number of selections.
-4. The player selects courses and submits their academic plan.
-5. The system checks that the selections meet the enrolment rules.
-6. The system records the major and selected courses.
-7. The system displays the confirmed academic plan.
+3. The system displays the courses attached to that major.
+4. The player confirms the selection.
+5. The system records the major and automatically assigns its courses.
+6. The system displays the confirmed major and assigned courses.
 
 **Extensions:**
-- 4a. The player cancels before confirming.
-  The system ends the selection process without changing the recorded academic plan.
-- 5a. The selections do not meet the enrolment rules.
-  The system explains what must change and allows the player to revise their selections. No invalid plan is recorded
+- **4a — The player cancels:** No major or courses are assigned.
+- **5a — The selected major is unavailable:** The system explains the problem and allows another selection without changing the player's academic plan.
 
-> **Note for the lead:** If you add rules from the US1 note (required courses, conflicts, drop a course), list
-> each one as an extension under step 5, or add a second use case (for example, UC1.2 Drop a course).
+**MVP boundary:** Courses are predefined by major and cannot be selected individually. Changing majors after confirmation is outside the MVP.
 
-### Use Case 2.1 — Attend a class (US2)
+---
+
+### UC2 — Complete a Class Challenge
+
+**Supports:** US2  
+**Location:** Lecture Hall  
 **Primary actor:** Student player
 
 **Preconditions:**
-- The player is enrolled in a course.
-- The current semester is in progress.
-- The game has class content available for that course.
+- The player has confirmed a major and received its attached courses.
+- Class questions are available for the assigned courses.
 
-**Trigger:** The player asks to attend a class for an enrolled course.
+**Trigger:** The player requests a class challenge.
 
-**Success outcome:** The class is recorded as completed, and the player sees their participation result.
+**Success outcome:** The challenge is recorded as completed, preparation points are awarded, and energy is deducted once.
 
 **Main success scenario:**
-1. The player requests to attend a class for an enrolled course.
-2. The system checks that the class is available and has not already been completed.
-3. The system presents the class material and a short practice question.
-4. The player submits an answer.
-5. The system evaluates the answer and displays feedback.
-6. The system records the class as completed.
-7. The system displays the updated course progress.
+1. The system displays the player's assigned courses and class-challenge completion status.
+2. The player selects a course.
+3. The system checks that its challenge is unfinished and the player has sufficient energy.
+4. The system explains the challenge and its energy cost.
+5. The player confirms participation.
+6. The system deducts energy and presents a short set of questions.
+7. The player answers each question and receives immediate feedback.
+8. The system records completion and awards preparation points based on correct answers.
+9. The system displays the challenge result and updated energy.
 
 **Extensions:**
-- 2a. The class is unavailable or already completed.
-  The system explains why it cannot be attended. Course progress remains unchanged.
-- 4a. The player submits no answer.
-  The system asks the player to provide an answer and continues the class.
-- 4b. The player leaves before submitting.
-  The class is not recorded as completed, and course progress remains unchanged.
-- 5a. The answer is incorrect.
-  The system explains the correct answer. The class is still recorded as completed, with the actual participation result.
+- **3a — The challenge is already completed:** The system displays the previous result without deducting energy or awarding additional points.
+- **3b — Insufficient energy:** The system suggests resting. The challenge does not start and no energy is deducted.
+- **5a — The player cancels before starting:** Nothing changes.
+- **6a — Questions cannot be loaded:** The system uses bundled fallback questions. If no suitable questions are available, it cancels the challenge and refunds the deducted energy.
+- **7a — No answer is selected:** The system requests an answer without advancing.
+- **7b — The player leaves early:** The system confirms cancellation. No completion or preparation points are recorded; spent energy is not refunded.
 
-> **Note for the lead:** This draft was written by Lanxin when US1 covered all academics. Please review it and
-> make it yours. Possible additions: an extension for when questions cannot be fetched (fallback questions),
-> and the time or Energy cost of attending class.
+**MVP boundary:** One class challenge per assigned course. Preparation points do not directly change course grades.
 
-### Use Case 3.1 — Take a course exam (US3)
+---
+
+### UC3 — Take a Course Exam
+
+**Supports:** US3  
+**Location:** Exam Centre  
 **Primary actor:** Student player
 
 **Preconditions:**
-- The player is enrolled in the selected course.
-- The game has exam questions and a grading rule for that course.
-- The player has an academic record that can store course results.
+- The player has confirmed a major and received its attached courses.
+- Exam questions and a grading rule are available for the assigned courses.
 
-**Trigger:** The player asks to take the course exam.
+**Trigger:** The player requests to take a course exam.
 
-**Success outcome:** The exam score and corresponding course grade are recorded, the GPA is recalculated, and the player sees the results.
+**Success outcome:** The exam score and course grade are recorded, and the player sees the result.
 
 **Main success scenario:**
-1. The player requests to take an exam for an enrolled course.
-2. The system checks that the exam is available and has not already been completed.
-3. The system explains the exam rules and presents the questions.
-4. The player answers the questions and submits the exam.
-5. The system checks that all required questions have answers.
-6. The system evaluates the answers and calculates the exam score.
-7. The system determines the course grade using the agreed grading rule.
-8. The system records the result and recalculates the player’s GPA.
-9. The system displays the exam score, course grade, and updated GPA.
+1. The system displays the player's assigned courses and exam-completion status.
+2. The player selects a course.
+3. The system checks that its exam is unfinished and sufficient energy is available.
+4. The system explains the exam length, energy cost, and whether preparation points have unlocked an optional hint.
+5. The player confirms participation.
+6. The system deducts energy and presents the exam questions.
+7. The player answers the questions and submits the exam.
+8. The system checks that all required answers are present.
+9. The system evaluates the answers and determines the score and course grade.
+10. The system records the result and displays the score, grade, and updated energy.
 
 **Extensions:**
-- 2a. The exam is unavailable or already completed.
-  The system explains why the exam cannot be started. Grades and GPA remain unchanged.
-- 5a. Required answers are missing.
-  The system identifies the unanswered questions and allows the player to complete them before resubmitting.
-- 4a. The player cancels before submission.
-  Under the proposed MVP rule, the attempt is discarded. No grade is recorded, and GPA remains unchanged.
-- 8a. The system cannot record the result.
-  The system reports that finalization failed and allows a retry without awarding the result twice.
+- **3a — The exam is already completed:** The system displays the existing result without starting another attempt or deducting energy.
+- **3b — Insufficient energy:** The system suggests resting. The exam does not start and no energy is deducted.
+- **5a — The player cancels before starting:** Nothing changes.
+- **6a — Questions cannot be loaded:** The system uses bundled fallback questions. If none are available, it cancels the exam and refunds the deducted energy.
+- **7a — The player requests an unlocked hint:** The system displays one hint for the selected question and marks the exam's hint as used.
+- **7b — The player cancels the exam:** The system confirms cancellation. No grade is recorded; spent energy is not refunded.
+- **8a — Required answers are missing:** The system identifies unanswered questions and allows completion before resubmission.
 
-> **Note for the lead:** This draft was also written by Lanxin. Please review it. Extensions are usually listed in
-> step order (4a currently comes after 5a). Consider a second use case such as *View transcript and GPA*.
+**MVP boundary:** One exam per assigned course. No immediate correctness feedback during the exam. Exam dates, timers, retakes, and GPA calculation are outside the MVP.
 
-### Use Case 4.1 — End the day (US4)
-**Primary actor:** Player
+**Rule to finalize:** Agree on the preparation-point threshold that unlocks the hint and the score-to-grade conversion.
+
+---
+
+### UC4 — Rest and Save Progress
+
+**Supports:** US4  
+**Location:** Innis Residence  
+**Primary actor:** Student player
 
 **Preconditions:**
-- A game is in progress
-- The player is in their residence room.
+- A game is active.
+- No class challenge or exam is in progress.
 
-**Trigger:** The player asks to sleep.
+**Trigger:** The player requests to rest.
 
-**Success outcome:** The game moves to the next day with the correct day type, real historical weather, and updated stats,
-and progress is saved.
+**Success outcome:** Energy is restored to its maximum and completed progress is saved as a checkpoint.
 
 **Main success scenario:**
-1. The player asks to sleep.
-2. The system checks that the player is in their residence room.
-3. The system advances the calendar to the next day and determines whether it is an A day or a B day.
-4. The system restores the player’s Energy according to when the player went to sleep.
-5. The system retrieves the historical weather for the real date that corresponds to the new day and converts it into a
-game condition: clear, cloudy, rain, or snow.
-6. The system saves the game.
-7. The system shows the player waking up on the new day, with the day number, day type, weather, any exam scheduled
-today, and updated stats.
+1. The player requests to rest.
+2. The system explains that resting restores energy and saves completed progress.
+3. The player confirms.
+4. The system restores energy to its maximum.
+5. The system saves the selected major, assigned courses, completed challenges, preparation points, exam results, and energy.
+6. The system confirms that the checkpoint was saved.
 
 **Extensions:**
-- 2a. The player is not in their residence room.
-    1. The system explains that the player must go home to sleep.
-    2. The use case ends and the day does not change.
-- 3a. The day that just ended was the last day of a week, but not of the term.
-    1. The system shows the weekend card, and the player chooses an activity.
-    2. The system applies the activity’s effect, and the use case continues at step 3.
-- 3b. The day that just ended was the last day of the term.
-    1. The system shows the break card, or the ending if this was the final term.
-    2. The system starts the next term on day 1, and the use case continues at step 4.
-- 5a. The weather source is unavailable.
-    1. The system uses its bundled copy of the same historical weather data.
-    2. The use case continues at step 6.
-- 6a. The system cannot save the game.
-    1. The system explains that progress was not saved.
-    2. The use case continues at step 7.
+- **3a — The player cancels:** Nothing changes.
+- **4a — Energy is already full:** The system keeps energy at its maximum and continues to save the checkpoint.
+- **5a — Saving fails:** Energy remains restored for the current session. The system reports that progress was not saved and offers a save retry.
 
-> **Note for the lead:** The commute step and rent were removed with housing. Once the weather effect is decided,
-> add it back as a step after step 5.
+**MVP boundary:** Rest is immediate. No sleep schedule, day progression, or real-time waiting. Residence is always accessible at zero energy.
 
-### Use Case 4.2 — Load a saved game (US4)
-**Primary actor:** Player
+---
+
+### UC5 — Continue a Saved Game
+
+**Supports:** US4  
+**Location:** Title screen  
+**Primary actor:** Student player
 
 **Preconditions:**
 - The application is running and the title screen is displayed.
 
-**Trigger:** The player asks to continue a saved game.
+**Trigger:** The player requests to continue a saved game.
 
-**Success outcome:** The game is restored exactly as it was saved, and the player is at home.
-
-**Main success scenario:**
-1. The player asks to continue.
-2. The system finds the save file.
-3. The system reads the save file and checks that it is valid.
-4. The system restores the game state: player profile, stats, major and courses, coursework scores, grades, calendar,
-and the term’s stored weather.
-5. The system shows the player at home on the saved day.
-
-**Extensions:**
-- 2a. No save file exists.
-    1. The system explains that there is no saved game and offers to start a new game.
-    2. The use case ends.
-- 3a. The save file is damaged or comes from an unsupported version.
-    1. The system explains that the save cannot be loaded.
-    2. The system does not change the file, and the use case ends.
-
-### Use Case 5.1 — Go to a campus location (US5)
-**Primary actor:** Player
-
-**Preconditions:**
-- A game is in progress.
-- The St. George Street map is displayed.
-
-**Trigger:** The player selects a building on the St. George Street map.
-
-**Success outcome:** The player is at the selected building and sees what they can do there.
+**Success outcome:** The saved checkpoint is restored and the player resumes at Residence.
 
 **Main success scenario:**
-1. The player selects a building on the map.
-2. The system checks that the building is open in the current time slot.
-3. The system moves the player to the building and applies the Energy cost of walking in today's weather.
-4. The system shows the building and the actions available there.
+1. The player requests to continue.
+2. The system finds the saved checkpoint.
+3. The system checks that the checkpoint is valid.
+4. The system restores the player's major, assigned courses, completed challenges, preparation points, exam results, and energy.
+5. The system displays Residence with the restored progress.
 
 **Extensions:**
-- 2a. The building is closed.
-    1. The system shows the building's opening hours.
-    2. The player stays where they are, and the use case ends.
-- 3a. The player does not have enough Energy to walk there.
-    1. The system explains that the player is too tired and suggests going home to sleep.
-    2. The player stays where they are, and the use case ends.
+- **2a — No checkpoint exists:** The system explains that no saved game is available and offers a new game.
+- **3a — The checkpoint is damaged or unsupported:** The system explains that it cannot be loaded and leaves the saved file unchanged.
 
-> **Note for the team (proposal):** Each story gets one building on St. George Street, for example: a residence
-> (US4, sleep), Sidney Smith Hall (US1, choose courses), Bahen Centre (US2, attend class), and Robarts Library or
-> an exam hall (US3, write exams). Which buildings to use and the map layout are still open.
+**MVP boundary:** Only completed progress saved at Residence is restored. Unfinished challenges and exams are not saved.
+
+---
+
+## Shared Campus Navigation
+
+A small, clickable St. George Street connects the Registrar’s Office, Lecture Hall, Exam Centre, and Residence.
+
+Selecting a building opens its activity screen. Players can return to the street; leaving an unfinished activity follows that activity's cancellation rules.
+
+Navigation does not consume energy, and Residence remains accessible at zero energy. Walking animation is a stretch goal. Opening hours, weather effects, and travel costs are outside the MVP.
 
 ---
 ## Minimal Viable Product (MVP)
 | Team Member | MVP Use Case |
 |:-------------:|:--------------|
-| *TBA* | UC1.1 — Choose a major and enrol in courses |
-| *TBA* | UC2.1 — Attend a class |
-| *TBA* | UC3.1 — Take a course exam |
-| Yuxiang Yuan | UC4.1 — End the day (calendar, historical weather, auto-save); UC4.2 — Load a saved game |
-| Shared | UC5.1 — Go to a campus location (map) |
+| Lanxin Fu | UC1 |
+| Xinjia Shen | UC2 |
+| Zhenbin An | UC3 |
+| Yuxiang Yuan | UC4 |
+| Shared | UC5 |
 
 ---
 ## Entities
-> **Note for the team:** The course asks for each entity's name, instance variables, and relevant methods (point
-> form or UML). The academic entities below are placeholders. The US1–US3 leads should agree on them together,
-> because all three stories share them.
 
-### Course (US1, shared with US2 and US3)
-*To be defined by the US1 lead.* Possible contents: course code, name, year level, difficulty, which days it
-meets, and the MMLU subject its questions come from.
+### Player
+Represents the student character, their energy, and their academic record.
 
-### AcademicRecord (US2 and US3)
-*To be defined by the US2 and US3 leads.* Possible contents: the player's enrolled courses, the coursework scores
-for each course (written by US2), and the final exam scores, course grades, and GPA (written by US3).
+### Major
+Represents a predefined major and its attached courses. Selecting a major automatically assigns those courses to the player.
 
-### Game Calendar (US4)
-Represents the current point in game time: year, term, day, and time slot (Morning, Afternoon, Evening, Late Night).
-It knows whether the current day is an A day or a B day, whether it is an exam day (day 12 or day 24), and whether
-the week or term has ended. Other use cases use it to spend time slots.
+### Course
+Represents a course attached to a major, including its description and question category.
 
-### DailyWeather (US4)
-A value object for one game day's weather: the real date it is based on, the game condition (clear, cloudy, rain,
-or snow), and the high and low temperatures. The conversion from raw weather data to a game condition is done
-outside the entity, so provider-specific API data never enters the domain model.
+### AcademicRecord
+Represents the player's confirmed major, assigned courses, and academic progress.
 
-### CampusLocation (US5)
-Represents a building on the St. George Street map: its name, the time slots when it is open, and whether walking
-there is outdoors (so the weather applies). The player's current location is one of these.
+### CourseProgress
+Tracks class completion, preparation points, and the exam result for one assigned course.
 
-### Player (Shared)
-Represents the student: name, major, location, and stats (GPA, Energy). US4 restores Energy after sleep; other
-stories update the remaining stats.
+### Question
+Represents a multiple-choice question, its answer options, correct answer, explanation, and optional hint.
 
-> **Note for the team:** Money was only used by food, work, and rent, which are now removed. Proposal: drop it.
+### QuestionSession
+Represents an active class challenge or exam, tracking questions, submitted answers, completion status, and hint usage.
+
+## Supporting Value Object
+
+### ExamResult
+Represents the recorded score and course grade from a completed exam.
 
 ---
 ## API Usage
 
-**Planned US4 API:** [Open-Meteo](https://open-meteo.com/en/docs/historical-weather-api)
+**Planned US5 API:** [Open-Meteo](https://open-meteo.com/en/docs/historical-weather-api)
 
 **How it will be used:** Suggestion only: real Toronto weather for each game day.
 
@@ -425,12 +337,6 @@ each course mapped to an MMLU subject.
 ### UML Class Diagram
 ### Sequence Diagrams
 
----
-## Future Extensions
-- **Choose where to live:** Residence or off-campus housing, with rent per term and a weather-dependent daily
-  commute (previously Use Case 2.2).
-- **Import real courses:** Let students enter the courses they actually plan to take, so the preview matches their
-  real next term.
 
 ---
 ## Development Plan (proposal)
