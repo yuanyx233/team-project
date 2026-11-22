@@ -43,17 +43,14 @@ at the end of the term.
 ---
 ## Project Description
 ### Domain
-University life simulation, presented as a casual top-down game
+University life simulation, presented as a casual campus game.
 
-**Stressdew Valley** is a casual simulation game about a term at university. The player chooses a major, attends classes, writes exams, and manages limited time and Energy from day to day, with real Toronto
-weather.
+**Stressdew Valley** is a casual game set along a simplified St. George Street. 
+Players choose a major, receive its predefined courses, complete class challenges, take exams, and rest to restore energy
+and save their progress.
 
-**Why we are building it:** When students plan their next term, it is hard to imagine what a course load will
-actually feel like until they are already living it. Stressdew Valley lets any student try out a term before
-committing to it: choose their year of study and a set of courses, play through the term, and see how the
-workload affects their daily Energy, their exam results, and their GPA. Along the way, the game shows that steady
-class attendance pays off at exam time and that time and energy need to be planned. If a term does not go well,
-the player can start over with a different plan. There is no real-world cost.
+**Why we are building it:** The project’s purpose is entertainment. It offers a simplified, fictional university experience rather than predicting real course
+workloads or academic performance.
 
 ---
 ## User Stories
@@ -89,7 +86,7 @@ As a student player, I want to end my study session by resting and saving my pro
 - **MVP:** Restore energy, save completed progress, and continue from the saved checkpoint when reopening the game.
 - **Outside MVP:** Sleep schedules, day progression, and saving unfinished challenges or exams.
 
-## US5 - Shared Campus Navigation
+## Shared Campus Navigation
 
 A small, clickable St. George Street connects the four buildings. Each member implements their building’s activity screen and its connection to the shared navigation.
 
@@ -283,8 +280,8 @@ Navigation does not consume energy, and Residence remains accessible at zero ene
 | Lanxin Fu | UC1 |
 | Xinjia Shen | UC2 |
 | Zhenbin An | UC3 |
-| Yuxiang Yuan | UC4 |
-| Shared | UC5 |
+| Yuxiang Yuan | UC4, UC5 |
+| Shared |  |
 
 ---
 ## Entities
@@ -318,43 +315,16 @@ Represents the recorded score and course grade from a completed exam.
 ---
 ## API Usage
 
-**Planned US5 API:** [Open-Meteo](https://open-meteo.com/en/docs/historical-weather-api)
-
-**How it will be used:** Suggestion only: real Toronto weather for each game day.
-
 **Planned US2/US3 API:** [Hugging Face Datasets API](https://huggingface.co/docs/dataset-viewer/index) with the
 [MMLU dataset](https://huggingface.co/datasets/cais/mmlu)
 
 **How it will be used:** Suggestion only: university-level multiple-choice questions for classes and exams, with
 each course mapped to an MMLU subject.
 
-**API Name:**
-**Documentation:** [Link]
-**How it is used in the program:**
-
 ---
 ## Design Diagrams
 ### UML Class Diagram
 ### Sequence Diagrams
-
-
----
-## Development Plan (proposal)
-**Week 1:** Agree on the shared entities (`Course`, `Player`, `AcademicRecord`, `GameCalendar`) and the interfaces
-between stories, such as the question source shared by US2 and US3. Build the main window and the clickable
-St. George Street map. Each lead checks that their API can be called from Java. Set up Checkstyle.
-
-**Week 2:** Each lead finishes their MVP use case (interactor, controller, presenter, view, and tests). Every PR is
-reviewed by at least one other member.
-
-**Week 3:** Integrate everything, and make sure saving covers every story's data. Do stretch goals if time allows.
-Prepare slides and the demo; each member practises explaining the architecture of their own part.
-
-**Working with AI coding tools:**
-- The team designs entities and interfaces by hand; AI implements against them.
-- Only change files in your own story. Changes to shared files (entities, main window) go in their own PR.
-- A reviewer should be able to explain what a PR does before approving it.
-- Write at least one test for each extension in your use case.
 
 ---
 ## How to Run
