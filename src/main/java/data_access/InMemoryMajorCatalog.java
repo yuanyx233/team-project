@@ -26,17 +26,17 @@ public final class InMemoryMajorCatalog implements MajorCatalogDataAccessInterfa
         return majors.stream().filter(major -> major.getId().equals(id)).findFirst();
     }
 
-    /** Fictional sample content, not approved courses or confirmed API mappings. */
-    public static InMemoryMajorCatalog demo() {
+    /** The agreed three-major fictional catalogue; category values are MMLU subject IDs. */
+    public static InMemoryMajorCatalog predefined() {
         return new InMemoryMajorCatalog(List.of(
-                new Major("computing", "Computing", "Explore programming and software design.", List.of(
-                        new Course("COMP1", "Programming Foundations", "computing"),
-                        new Course("COMP2", "Software Design", "computing"))),
-                new Major("history", "History", "Explore historical events and societies.", List.of(
-                        new Course("HIST1", "World History", "history"),
-                        new Course("HIST2", "Historical Perspectives", "history"))),
-                new Major("biology", "Biology", "Explore life and living systems.", List.of(
-                        new Course("BIO1", "Cell Biology", "biology"),
-                        new Course("BIO2", "Ecology", "biology")))));
+                new Major("cs", "Computer Science", "Explore computing foundations and advanced concepts.", List.of(
+                        new Course("CS101", "Computing Foundations", "high_school_computer_science"),
+                        new Course("CS201", "College Computer Science", "college_computer_science"))),
+                new Major("biology", "Biology", "Explore living systems and biological concepts.", List.of(
+                        new Course("BIO101", "Biology Foundations", "high_school_biology"),
+                        new Course("BIO201", "College Biology", "college_biology"))),
+                new Major("history", "History", "Explore world and European history.", List.of(
+                        new Course("HIST101", "World History", "high_school_world_history"),
+                        new Course("HIST201", "European History", "high_school_european_history")))));
     }
 }

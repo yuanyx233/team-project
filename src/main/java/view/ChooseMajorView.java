@@ -15,6 +15,8 @@ public final class ChooseMajorView extends JPanel {
     private final JTextArea message = new JTextArea();
     private final JButton confirm = new JButton("Confirm Major");
     private boolean rendering;
+    private boolean loading;
+    private ChooseMajorState latestState;
 
     public ChooseMajorView(ChooseMajorController controller, ChooseMajorViewModel model,
                            Runnable returnToStreet) {
@@ -27,7 +29,8 @@ public final class ChooseMajorView extends JPanel {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                           boolean selected, boolean focus) {
                 return super.getListCellRendererComponent(list,
-                        value instanceof MajorData ? ((MajorData) value).getName() : value,
+                        value instanceof MajorData ? ((MajorData) value).getName()
+                                + (((MajorData) value).isPlayable() ? "" : " (Not available)") : value,
                         index, selected, focus);
             }
         });
@@ -62,7 +65,13 @@ public final class ChooseMajorView extends JPanel {
         render(model.getState());
     }
 
+    public void setLoading(boolean loading) {
+        this.loading = loading;
+        if (latestState != null) { render(latestState); }
+    }
+
     private void render(ChooseMajorState state) {
+        latestState = state;
         rendering = true;
         try {
             listModel.clear();
@@ -75,14 +84,18 @@ public final class ChooseMajorView extends JPanel {
                 for (int i = 0; i < listModel.size(); i++) {
                     if (listModel.get(i).getId().equals(selected.getId())) { majors.setSelectedIndex(i); }
                 }
-                preview.setText(selected.getName() + "\n\n" + selected.getDescription()
-                        + "\n\nAutomatically assigned courses:\n- "
-                        + String.join("\n- ", selected.getCourseNames()));
+                String courses = selected.isPlayable()
+                        ? "\n\nFictional game courses automatically assigned:\n- "
+                            + String.join("\n- ", selected.getCourseNames())
+                        : "\n\nThis major is not available in the game yet.";
+                preview.setText(selected.getName() + "\n\nGame description (local):\n"
+                        + selected.getDescription() + courses + "\n\nData source: "
+                        + selected.getSourceLabel() + "\nOfficial program page: " + selected.getSourceUrl());
             }
-            majors.setEnabled(!state.isConfirmed());
-            confirm.setEnabled(selected != null && !state.isConfirmed());
+            majors.setEnabled(!state.isConfirmed() && !loading);
+            confirm.setEnabled(selected != null && selected.isPlayable() && !state.isConfirmed() && !loading);
             message.setForeground(state.isError() ? new Color(150, 20, 20) : Color.DARK_GRAY);
-            message.setText(state.getMessage());
+            message.setText(loading ? "Fetching eight U of T program titles. Local fallback is ready if unavailable..." : state.getMessage());
         }
         finally { rendering = false; }
     }

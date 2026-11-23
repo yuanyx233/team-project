@@ -18,6 +18,9 @@ public final class AcademicRecord {
             throw new IllegalStateException("Your major has already been confirmed.");
         }
         Objects.requireNonNull(major, "Major cannot be null.");
+        if (!major.isPlayable()) {
+            throw new IllegalArgumentException("This major is not available in the game yet.");
+        }
         Map<String, CourseProgress> initial = new LinkedHashMap<>();
         for (Course course : major.getCourses()) {
             initial.put(course.getId(), new CourseProgress(course.getId()));
