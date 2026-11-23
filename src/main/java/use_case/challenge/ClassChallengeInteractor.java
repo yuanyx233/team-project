@@ -38,6 +38,23 @@ public final class ClassChallengeInteractor implements ChallengeInputBoundary {
     public synchronized void execute(ChallengeInputData input)
             throws QuestionLoadException, ChallengeStateException {
         if (overview == null) { overview = state.loadOverview(); }
+        try {
+            dispatch(input);
+        }
+        catch (QuestionLoadException | ChallengeStateException exception) {
+            try {
+                overview = state.loadOverview();
+                present();
+            }
+            catch (ChallengeStateException refreshFailure) {
+                exception.addSuppressed(refreshFailure);
+            }
+            throw exception;
+        }
+        present();
+    }
+
+    private void dispatch(ChallengeInputData input) throws QuestionLoadException, ChallengeStateException {
         switch (input.action) {
             case OPEN:
                 if (session == null) { open(); }
@@ -60,7 +77,6 @@ public final class ClassChallengeInteractor implements ChallengeInputBoundary {
             default:
                 throw new IllegalArgumentException("Unsupported challenge action");
         }
-        present();
     }
 
     private void open() throws ChallengeStateException {

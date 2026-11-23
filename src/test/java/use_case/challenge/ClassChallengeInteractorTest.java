@@ -193,6 +193,7 @@ class ClassChallengeInteractorTest {
         command(Action.SELECT);
         assertThrows(ChallengeStateException.class, () -> command(Action.START));
         assertEquals(0, state.starts);
+        assertEquals(0, recorder.latest.overview.getEnergy());
         state.energy = 100;
         state.activeAttempt = "exam-owned";
         interactor = create((t, p, c) -> testQuestions());
