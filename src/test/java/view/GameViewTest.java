@@ -1,22 +1,38 @@
 package view;
 
+import app.AppBuilder;
+import data_access.FileGameStateDataAccessObject;
+import entity.GameDay;
+import entity.Player;
 import java.awt.Component;
 import java.awt.Container;
+import java.nio.file.Path;
+import java.time.LocalDate;
 import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GameViewTest {
+    @TempDir
+    Path directory;
+
     @Test
     void navigateToBuildingsAndBack() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
-            GameView view = new GameView();
+            JPanel root = new AppBuilder(directory.resolve("checkpoint.json")).build();
+            GameView view = (GameView) root.getComponent(0);
             assertEquals("title", currentPage(view).getName());
-            assertFalse(button(currentPage(view), "Continue").isEnabled());
+            button(currentPage(view), "Continue").doClick();
+            assertEquals("title", currentPage(view).getName());
+            assertTrue(hasText(currentPage(view), "No saved game is available."));
             button(currentPage(view), "New Game").doClick();
+            view = (GameView) root.getComponent(0);
 
             String[][] buildings = {
                 {"Registrar's Office", "registrar"},
@@ -33,6 +49,42 @@ class GameViewTest {
             button(currentPage(view), "Title Screen").doClick();
             assertEquals("title", currentPage(view).getName());
         });
+    }
+
+    @Test
+    void continueRestoresResidenceAndNewGameStartsFresh() throws Exception {
+        Path checkpoint = directory.resolve("checkpoint.json");
+        new FileGameStateDataAccessObject(checkpoint,
+                new GameDay(4, LocalDate.of(2025, 9, 2)), new Player(35, 100)).saveCheckpoint();
+        SwingUtilities.invokeAndWait(() -> {
+            JPanel root = new AppBuilder(checkpoint).build();
+            GameView view = (GameView) root.getComponent(0);
+            button(currentPage(view), "Continue").doClick();
+            assertEquals("residence", currentPage(view).getName());
+            assertTrue(hasText(currentPage(view), "Day 4"));
+            assertTrue(hasText(currentPage(view), "Energy: 35 / 100"));
+            button(currentPage(view), "Back to Street").doClick();
+            button(currentPage(view), "Title Screen").doClick();
+            button(currentPage(view), "New Game").doClick();
+            view = (GameView) root.getComponent(0);
+            button(currentPage(view), "Innis Residence").doClick();
+            assertTrue(hasText(currentPage(view), "Day 1"));
+            assertTrue(hasText(currentPage(view), "Energy: 100 / 100"));
+        });
+        FileGameStateDataAccessObject saved = new FileGameStateDataAccessObject(checkpoint,
+                new GameDay(1, LocalDate.of(2025, 9, 2)), new Player(100, 100));
+        saved.loadCheckpoint();
+        assertEquals(4, saved.getCurrentDay().getDayNumber());
+    }
+
+    private boolean hasText(Container page, String text) {
+        for (Component component : page.getComponents()) {
+            if (component instanceof JLabel && ((JLabel) component).getText() != null
+                    && ((JLabel) component).getText().contains(text)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Container currentPage(GameView view) {
