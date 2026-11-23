@@ -323,8 +323,8 @@ each course mapped to an MMLU subject.
 or snow) is shown when the player wakes up and decides how much energy is restored. A bundled copy of the same data is
 used if the API is unavailable.
 
-**Status:** Successfully called from a standalone Java test (`java.net.http.HttpClient`, no API key needed). Not yet
-integrated into the game.
+**Status:** Successfully called (`java.net.http.HttpClient`, no API key needed) and integrated into the US4 rest use
+case. If the API is unavailable, the bundled `toronto-weather.json` is used instead.
 
 ---
 ## Design Diagrams
