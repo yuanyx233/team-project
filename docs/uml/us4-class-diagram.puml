@@ -1,0 +1,126 @@
+@startuml us4-class-diagram
+' US4 — Rest and Start a New Day (UC4 as currently implemented).
+' Saving the checkpoint (UC4 step 7) and UC5 are not included yet.
+
+title US4 — Rest and Start a New Day
+skinparam classAttributeIconSize 0
+hide empty members
+
+package view {
+  class ResidenceView {
+    - dayLabel: JLabel
+    - weatherLabel: JLabel
+    - energyLabel: JLabel
+    + ResidenceView(viewModel: RestViewModel, controller: RestController)
+  }
+}
+
+package interface_adapter.rest {
+  class RestController {
+    + execute(): void
+  }
+  class RestPresenter {
+    + prepareSuccessView(outputData: RestOutputData): void
+  }
+  class RestViewModel {
+    - dayText: String
+    - weatherText: String
+    - energyText: String
+    + setState(dayText: String, weatherText: String, energyText: String): void
+    + addPropertyChangeListener(listener: PropertyChangeListener): void
+  }
+}
+
+package use_case.rest {
+  interface RestInputBoundary {
+    + execute(): void
+  }
+  class RestInteractor {
+    + execute(): void
+  }
+  interface RestOutputBoundary {
+    + prepareSuccessView(outputData: RestOutputData): void
+  }
+  class RestOutputData {
+    - dayNumber: int
+    - date: LocalDate
+    - condition: WeatherCondition
+    - highTemperature: double
+    - lowTemperature: double
+    - energy: int
+    - maxEnergy: int
+  }
+  interface RestGameStateDataAccessInterface {
+    + getCurrentDay(): GameDay
+    + setCurrentDay(day: GameDay): void
+    + getPlayer(): Player
+  }
+  interface RestWeatherDataAccessInterface {
+    + getWeather(date: LocalDate): DailyWeather
+  }
+}
+
+package data_access {
+  class InMemoryGameStateDataAccessObject {
+    - currentDay: GameDay
+    - player: Player
+  }
+  class OpenMeteoWeatherDataAccessObject {
+    + {static} DEFAULT_BASE_URL: String
+    - baseUrl: String
+    + getWeather(date: LocalDate): DailyWeather
+    ~ {static} parseDay(response: JSONObject, date: LocalDate): DailyWeather
+  }
+  class BundledWeatherDataAccessObject {
+    - data: JSONObject
+    + getWeather(date: LocalDate): DailyWeather
+  }
+}
+
+package entity {
+  class GameDay {
+    - dayNumber: int
+    - startDate: LocalDate
+    + getRealDate(): LocalDate
+    + next(): GameDay
+  }
+  class Player {
+    - energy: int
+    - maxEnergy: int
+    + restoreEnergyToPercent(percent: int): void
+  }
+  class DailyWeather {
+    - date: LocalDate
+    - condition: WeatherCondition
+    - highTemperature: double
+    - lowTemperature: double
+    + getEnergyRestorePercent(): int
+  }
+  enum WeatherCondition {
+    CLEAR (100%)
+    CLOUDY (95%)
+    RAIN (85%)
+    SNOW (80%)
+    + {static} fromWmoCode(wmoCode: int): WeatherCondition
+  }
+}
+
+ResidenceView --> RestController
+ResidenceView ..> RestViewModel : observes
+RestController --> RestInputBoundary
+RestInteractor ..|> RestInputBoundary
+RestInteractor --> RestOutputBoundary
+RestInteractor --> RestGameStateDataAccessInterface
+RestInteractor --> RestWeatherDataAccessInterface
+RestInteractor ..> RestOutputData : creates
+RestPresenter ..|> RestOutputBoundary
+RestPresenter --> RestViewModel
+InMemoryGameStateDataAccessObject ..|> RestGameStateDataAccessInterface
+InMemoryGameStateDataAccessObject --> GameDay
+InMemoryGameStateDataAccessObject --> Player
+OpenMeteoWeatherDataAccessObject ..|> RestWeatherDataAccessInterface
+BundledWeatherDataAccessObject ..|> RestWeatherDataAccessInterface
+OpenMeteoWeatherDataAccessObject --> RestWeatherDataAccessInterface : fallback
+DailyWeather --> WeatherCondition
+
+@enduml

@@ -215,6 +215,12 @@ As a student player, I want to rest at my residence to start a new day with real
 
 **Rule to finalize:** The real start date matched to day 1, and the energy restored for each condition (proposed: clear 100%, cloudy 95%, rain 85%, snow 80% of maximum).
 
+**Possible future change (not in MVP) — restore energy by bedtime:** Energy restored would depend mainly on when the player goes to sleep, with weather as a small penalty.
+- **Shared game clock:** Each day starts at 6:00. A class challenge advances the clock by 3 hours and an exam by 4 hours; navigation takes no time. At 2:00 the player passes out, which counts as resting.
+- **Restore by bedtime:** before midnight 100%, midnight–2:00 75%, passing out at 2:00 50% of maximum. Energy already above that level is kept.
+- **Weather penalty:** rain −5%, snow −10%; clear and cloudy have no penalty.
+- **Impact:** US2 and US3 would advance the shared clock after each activity. With one challenge and one exam per course, late bedtimes only happen when a player does many activities in one day.
+
 ---
 
 ### UC5 — Continue a Saved Game
@@ -323,6 +329,8 @@ integrated into the game.
 ---
 ## Design Diagrams
 ### UML Class Diagram
+- [US4 — Rest and Start a New Day](docs/uml/us4-class-diagram.puml)
+
 ### Sequence Diagrams
 
 ---
