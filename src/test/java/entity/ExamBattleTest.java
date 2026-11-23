@@ -62,4 +62,99 @@ class ExamBattleTest {
         assertThrows(IllegalStateException.class, () -> battle.submitAnswer(false));
         assertEquals(5, battle.getAnsweredCount());
     }
+
+    @ParameterizedTest
+    @CsvSource({"0, false, false", "1, true, false", "2, true, true", "3, true, true"})
+    void pointsUnlockSkills(int points, boolean hint, boolean shield) {
+        ExamBattle battle = new ExamBattle(points);
+        assertEquals(hint, battle.canUseHint());
+        assertEquals(shield, battle.canUseShield());
+    }
+
+    @Test
+    void lockedSkillsCannotBeUsed() {
+        ExamBattle battle = new ExamBattle();
+        assertThrows(IllegalStateException.class, () -> battle.useHint(0));
+        assertThrows(IllegalStateException.class, battle::useShield);
+        assertEquals(0, battle.getAnsweredCount());
+        assertEquals(60, battle.getPlayerHp());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 1", "3, 0"})
+    void hintEliminatesOneWrongOption(int correctOption, int eliminatedOption) {
+        ExamBattle battle = new ExamBattle(2);
+        assertEquals(eliminatedOption, battle.useHint(correctOption));
+        assertThrows(IllegalStateException.class, () -> battle.useHint(correctOption));
+        assertEquals(0, battle.getAnsweredCount());
+        assertTrue(battle.canUseShield());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"-1", "4"})
+    void invalidOptionDoesNotUseUpHint(int option) {
+        ExamBattle battle = new ExamBattle(1);
+        assertThrows(IllegalArgumentException.class, () -> battle.useHint(option));
+        assertTrue(battle.canUseHint());
+    }
+
+    @Test
+    void shieldWaitsForOneWrongAnswer() {
+        ExamBattle battle = new ExamBattle(2);
+        battle.useShield();
+        assertThrows(IllegalStateException.class, battle::useShield);
+        battle.submitAnswer(true);
+        assertTrue(battle.isShieldActive());
+        battle.submitAnswer(false);
+        assertEquals(60, battle.getPlayerHp());
+        assertFalse(battle.isShieldActive());
+        battle.submitAnswer(false);
+        assertEquals(40, battle.getPlayerHp());
+        assertEquals(1, battle.getCorrectCount());
+        assertEquals(3, battle.getAnsweredCount());
+    }
+
+    @Test
+    void survivingFiveQuestionsStillLosesIfBossIsAlive() {
+        ExamBattle battle = new ExamBattle(2);
+        battle.useShield();
+        battle.submitAnswer(false);
+        battle.submitAnswer(false);
+        battle.submitAnswer(true);
+        battle.submitAnswer(true);
+        battle.submitAnswer(false);
+        assertEquals(20, battle.getPlayerHp());
+        assertEquals(20, battle.getBossHp());
+        assertTrue(battle.isFinished());
+        assertFalse(battle.hasWon());
+        assertThrows(IllegalStateException.class, () -> battle.submitAnswer(true));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void skillsCannotBeUsedAfterBattle(boolean correct) {
+        ExamBattle battle = new ExamBattle(2);
+        for (int i = 0; i < 3; i++) {
+            battle.submitAnswer(correct);
+        }
+        assertFalse(battle.canUseHint());
+        assertFalse(battle.canUseShield());
+        assertThrows(IllegalStateException.class, () -> battle.useHint(0));
+        assertThrows(IllegalStateException.class, battle::useShield);
+    }
+
+    @Test
+    void shieldExpiresWhenBattleEnds() {
+        ExamBattle battle = new ExamBattle(2);
+        battle.useShield();
+        for (int i = 0; i < 3; i++) {
+            battle.submitAnswer(true);
+        }
+        assertFalse(battle.isShieldActive());
+    }
+
+    @Test
+    void negativePointsAreRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new ExamBattle(-1));
+    }
 }
