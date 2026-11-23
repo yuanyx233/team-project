@@ -152,6 +152,15 @@ class ClassChallengeInteractorTest {
         assertEquals(0, loads);
     }
 
+    @Test void exactEnergyCostIsAllowedAndRemainsZeroAfterCompletion() throws Exception {
+        state.energy = 20;
+        start();
+        assertEquals(0, state.energy);
+        finish();
+        assertEquals(0, recorder.latest.overview.getEnergy());
+        assertEquals(2, state.awardedPoints);
+    }
+
     @Test void rejectsUnassignedCoursesMissingMajorAndInsufficientEnergy() throws Exception {
         assertThrows(ChallengeStateException.class, () -> interactor.execute(new ChallengeInputData(
                 Action.SELECT, "not-enrolled", "", 0, -1, false)));

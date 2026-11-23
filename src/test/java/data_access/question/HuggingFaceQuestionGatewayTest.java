@@ -57,6 +57,17 @@ class HuggingFaceQuestionGatewayTest {
         }
     }
 
+    @Test void rejectsUnsupportedCountsBeforeSendingARequest() {
+        HuggingFaceQuestionGateway gateway = new HuggingFaceQuestionGateway(uri -> {
+            fail("Invalid requests must not reach the service");
+            return "";
+        });
+        for (int count : new int[]{0, 4}) {
+            assertThrows(IllegalArgumentException.class, () -> gateway.getQuestions(
+                    QuestionTopic.ECOLOGY, QuestionPurpose.EXAM, count));
+        }
+    }
+
     @Test void preservesInterruptStatus() {
         try {
             HuggingFaceQuestionGateway gateway = new HuggingFaceQuestionGateway(uri -> {
