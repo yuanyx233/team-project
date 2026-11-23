@@ -15,9 +15,11 @@ public class RestOutputData {
     private final double lowTemperature;
     private final int energy;
     private final int maxEnergy;
+    private final boolean saved;
 
     public RestOutputData(int dayNumber, LocalDate date, WeatherCondition condition,
-                          double highTemperature, double lowTemperature, int energy, int maxEnergy) {
+                          double highTemperature, double lowTemperature, int energy, int maxEnergy,
+                          boolean saved) {
         this.dayNumber = dayNumber;
         this.date = date;
         this.condition = condition;
@@ -25,6 +27,7 @@ public class RestOutputData {
         this.lowTemperature = lowTemperature;
         this.energy = energy;
         this.maxEnergy = maxEnergy;
+        this.saved = saved;
     }
 
     public int getDayNumber() {
@@ -53,5 +56,9 @@ public class RestOutputData {
 
     public int getMaxEnergy() {
         return maxEnergy;
+    }
+
+    public boolean isSaved() {
+        return saved;
     }
 }

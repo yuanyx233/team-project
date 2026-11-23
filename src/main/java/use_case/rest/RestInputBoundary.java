@@ -5,4 +5,7 @@ package use_case.rest;
  */
 public interface RestInputBoundary {
     void execute();
+
+    /** Tries again to save the checkpoint after a failed save (UC4 extension 7a). */
+    void retrySave();
 }

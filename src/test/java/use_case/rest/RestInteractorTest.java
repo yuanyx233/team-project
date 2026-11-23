@@ -16,10 +16,25 @@ class RestInteractorTest {
     private static class FakeGameState implements RestGameStateDataAccessInterface {
         GameDay day = new GameDay(1, START);
         final Player player = new Player(20, 100);
+        DailyWeather weather;
+        boolean failSave;
+        int saveCount;
+        int savedDayNumber;
+        DailyWeather savedWeather;
 
         public GameDay getCurrentDay() { return day; }
         public void setCurrentDay(GameDay day) { this.day = day; }
         public Player getPlayer() { return player; }
+        public void setCurrentWeather(DailyWeather weather) { this.weather = weather; }
+
+        public void saveCheckpoint() throws SaveFailedException {
+            saveCount++;
+            if (failSave) {
+                throw new SaveFailedException("disk full", null);
+            }
+            savedDayNumber = day.getDayNumber();
+            savedWeather = weather;
+        }
     }
 
     private static RestWeatherDataAccessInterface weatherOf(WeatherCondition condition) {
@@ -28,7 +43,9 @@ class RestInteractorTest {
 
     private static class CapturingPresenter implements RestOutputBoundary {
         RestOutputData output;
+        Boolean retryResult;
         public void prepareSuccessView(RestOutputData output) { this.output = output; }
+        public void prepareSaveRetryView(boolean saved) { this.retryResult = saved; }
     }
 
     @Test
@@ -59,5 +76,48 @@ class RestInteractorTest {
         new RestInteractor(state, weather, new CapturingPresenter()).execute();
 
         assertEquals(START.plusDays(1), requested[0]);
+    }
+
+    @Test
+    void newDayAndItsWeatherAreSaved() {
+        FakeGameState state = new FakeGameState();
+        CapturingPresenter presenter = new CapturingPresenter();
+
+        new RestInteractor(state, weatherOf(WeatherCondition.SNOW), presenter).execute();
+
+        assertEquals(1, state.saveCount);
+        assertEquals(2, state.savedDayNumber);
+        assertEquals(WeatherCondition.SNOW, state.savedWeather.getCondition());
+        assertTrue(presenter.output.isSaved());
+    }
+
+    @Test
+    void failedSaveKeepsNewDayAndReportsNotSaved() {
+        FakeGameState state = new FakeGameState();
+        state.failSave = true;
+        CapturingPresenter presenter = new CapturingPresenter();
+
+        new RestInteractor(state, weatherOf(WeatherCondition.CLEAR), presenter).execute();
+
+        assertEquals(2, state.getCurrentDay().getDayNumber());
+        assertEquals(100, state.getPlayer().getEnergy());
+        assertFalse(presenter.output.isSaved());
+    }
+
+    @Test
+    void retrySaveReportsWhetherItSucceeded() {
+        FakeGameState state = new FakeGameState();
+        state.failSave = true;
+        CapturingPresenter presenter = new CapturingPresenter();
+        RestInteractor interactor = new RestInteractor(state, weatherOf(WeatherCondition.CLEAR), presenter);
+        interactor.execute();
+
+        interactor.retrySave();
+        assertFalse(presenter.retryResult);
+
+        state.failSave = false;
+        interactor.retrySave();
+        assertTrue(presenter.retryResult);
+        assertEquals(2, state.savedDayNumber);
     }
 }

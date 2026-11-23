@@ -6,6 +6,7 @@ import interface_adapter.rest.RestViewModel;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -18,6 +19,8 @@ public class ResidenceView extends JPanel {
     private final JLabel dayLabel = new JLabel();
     private final JLabel weatherLabel = new JLabel();
     private final JLabel energyLabel = new JLabel();
+    private final JLabel saveLabel = new JLabel();
+    private final JButton retryButton = new JButton("Retry save");
 
     public ResidenceView(RestViewModel viewModel, RestController controller) {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -34,9 +37,12 @@ public class ResidenceView extends JPanel {
                 controller.execute();
             }
         });
+        retryButton.addActionListener(e -> controller.retrySave());
+        retryButton.setVisible(false);
 
-        for (Component c : new Component[]{title, dayLabel, weatherLabel, energyLabel, restButton}) {
-            ((javax.swing.JComponent) c).setAlignmentX(Component.LEFT_ALIGNMENT);
+        for (JComponent c : new JComponent[]{title, dayLabel, weatherLabel, energyLabel, restButton,
+                saveLabel, retryButton}) {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
             add(c);
         }
 
@@ -44,6 +50,8 @@ public class ResidenceView extends JPanel {
             dayLabel.setText(viewModel.getDayText());
             weatherLabel.setText(viewModel.getWeatherText());
             energyLabel.setText(viewModel.getEnergyText());
+            saveLabel.setText(viewModel.getSaveText());
+            retryButton.setVisible(viewModel.isRetryAvailable());
         });
     }
 }

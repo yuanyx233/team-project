@@ -1,5 +1,6 @@
 package use_case.rest;
 
+import entity.DailyWeather;
 import entity.GameDay;
 import entity.Player;
 
@@ -12,4 +13,12 @@ public interface RestGameStateDataAccessInterface {
     void setCurrentDay(GameDay day);
 
     Player getPlayer();
+
+    void setCurrentWeather(DailyWeather weather);
+
+    /**
+     * Saves the current game state as the checkpoint.
+     * @throws SaveFailedException if the checkpoint could not be written
+     */
+    void saveCheckpoint() throws SaveFailedException;
 }

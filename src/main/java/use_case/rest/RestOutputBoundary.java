@@ -5,4 +5,7 @@ package use_case.rest;
  */
 public interface RestOutputBoundary {
     void prepareSuccessView(RestOutputData outputData);
+
+    /** @param saved whether the retried save succeeded */
+    void prepareSaveRetryView(boolean saved);
 }

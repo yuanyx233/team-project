@@ -329,7 +329,7 @@ case. If the API is unavailable, the bundled `toronto-weather.json` is used inst
 ---
 ## Design Diagrams
 ### UML Class Diagram
-- [US4 — Rest and Start a New Day](docs/uml/us4-class-diagram.puml)
+- [US4 — Rest, Start a New Day, and Save Progress](docs/uml/us4-class-diagram.puml)
 
 ### Sequence Diagrams
 

@@ -4,9 +4,12 @@ import use_case.rest.RestOutputBoundary;
 import use_case.rest.RestOutputData;
 
 /**
- * Formats the new day for display.
+ * Formats the new day and the save result for display.
  */
 public class RestPresenter implements RestOutputBoundary {
+    static final String SAVED = "Progress saved.";
+    static final String NOT_SAVED = "Progress was not saved.";
+
     private final RestViewModel viewModel;
 
     public RestPresenter(RestViewModel viewModel) {
@@ -16,9 +19,14 @@ public class RestPresenter implements RestOutputBoundary {
     @Override
     public void prepareSuccessView(RestOutputData data) {
         viewModel.setState(
-                String.format("Day %d (%s)", data.getDayNumber(), data.getDate()),
-                String.format("Weather: %s, %.1f°C / %.1f°C",
-                        data.getCondition(), data.getHighTemperature(), data.getLowTemperature()),
-                String.format("Energy: %d / %d", data.getEnergy(), data.getMaxEnergy()));
+                ResidenceFormat.day(data.getDayNumber(), data.getDate()),
+                ResidenceFormat.weather(data.getCondition(), data.getHighTemperature(), data.getLowTemperature()),
+                ResidenceFormat.energy(data.getEnergy(), data.getMaxEnergy()));
+        prepareSaveRetryView(data.isSaved());
+    }
+
+    @Override
+    public void prepareSaveRetryView(boolean saved) {
+        viewModel.setSaveStatus(saved ? SAVED : NOT_SAVED, !saved);
     }
 }

@@ -15,4 +15,8 @@ public class RestController {
     public void execute() {
         interactor.execute();
     }
+
+    public void retrySave() {
+        interactor.retrySave();
+    }
 }
