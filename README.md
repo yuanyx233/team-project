@@ -16,23 +16,6 @@ at the end of the term.
 
 # Stressdew Valley
 
-> **PROPOSAL — scope reduction (draft for team review)**
->
-> Our previous scope (academics, housing, food and work, NPCs, and email) was too large. This draft keeps two
-> themes, **academics** (main focus) and **daily life and saving**, and splits them into **four user stories, one
-> per member**, as the course requires ("one user story per team member"). The rubric gives ≤ 1/5 for scope if
-> there are fewer user stories than members. A fifth story, the **St. George Street map (US5)**, is shared by
-> everyone.
->
-> - Removed: food and work (old US3), NPCs and email (old US4.1/4.2), and housing choice (old UC2.2, moved to
->   *Future Extensions*). The removed text is still in git history.
-> - Each section has a **Note for the lead** box with suggestions. The lead of each section decides the final
->   wording. Please delete the note boxes once your section is done.
-> - Only US4 has a lead so far. The leads for US1–US3 are **TBA**.
-> - **Time budget:** We have about 2–3 weeks of part-time work, plus the map. Each story is split into
->   **MVP** (must work for the demo) and **Stretch** (only if time allows). With AI-assisted coding, writing code
->   is not the bottleneck. Understanding our own code for Q&A, and integrating five parts, are.
-
 ## Team Information
 ### Team Members
 - Yuxiang Yuan
@@ -46,7 +29,7 @@ at the end of the term.
 University life simulation, presented as a casual campus game.
 
 **Stressdew Valley** is a casual game set along a simplified St. George Street. 
-Players choose a major, receive its predefined courses, complete class challenges, take exams, and rest to restore energy
+Players choose a major, receive its predefined courses, complete class challenges, take exams, and rest to start a new day with real Toronto weather, restore energy,
 and save their progress.
 
 **Why we are building it:** The project’s purpose is entertainment. It offers a simplified, fictional university experience rather than predicting real course
@@ -78,21 +61,13 @@ As a student player, I want to take an exam for a course attached to my major an
 - **MVP:** Complete one exam per assigned course, spend energy, and receive a recorded score and course grade. Preparation points can unlock one optional hint.
 - **Outside MVP:** Exam dates, timers, retakes, and GPA calculation.
 
-### US4 — Rest and Save Progress
-As a student player, I want to end my study session by resting and saving my progress so that I can recover energy and continue later.
+### US4 — Rest, Start a New Day, and Save Progress
+As a student player, I want to rest at my residence to start a new day with real-world weather and have my progress saved so that I can recover energy and continue later.
 
 - **Building:** Innis Residence
 - **Responsible team member:** Yuxiang Yuan
-- **MVP:** Restore energy, save completed progress, and continue from the saved checkpoint when reopening the game.
-- **Outside MVP:** Sleep schedules, day progression, and saving unfinished challenges or exams.
-
-## Shared Campus Navigation
-
-A small, clickable St. George Street connects the four buildings. Each member implements their building’s activity screen and its connection to the shared navigation.
-
-Navigation does not consume energy. Residence remains accessible at zero energy.
-
-Walking animation is a stretch goal. Opening hours, weather effects, and travel costs are outside the MVP.
+- **MVP:** Rest to start the next day, show that day's real Toronto weather, restore energy according to the weather, save completed progress, and continue from the saved checkpoint when reopening the game.
+- **Outside MVP:** A term length with an end-of-term summary, weekend events, sleep schedules, and saving unfinished challenges or exams.
 
 ---
 ## Use Cases
@@ -206,7 +181,7 @@ Walking animation is a stretch goal. Opening hours, weather effects, and travel 
 
 ---
 
-### UC4 — Rest and Save Progress
+### UC4 — Rest and Start a New Day
 
 **Supports:** US4  
 **Location:** Innis Residence  
@@ -218,22 +193,27 @@ Walking animation is a stretch goal. Opening hours, weather effects, and travel 
 
 **Trigger:** The player requests to rest.
 
-**Success outcome:** Energy is restored to its maximum and completed progress is saved as a checkpoint.
+**Success outcome:** The game moves to the next day with real weather, energy is restored according to that weather, and completed progress is saved as a checkpoint.
 
 **Main success scenario:**
 1. The player requests to rest.
-2. The system explains that resting restores energy and saves completed progress.
+2. The system explains that resting ends the day, restores energy based on the next day's weather, and saves completed progress.
 3. The player confirms.
-4. The system restores energy to its maximum.
-5. The system saves the selected major, assigned courses, completed challenges, preparation points, exam results, and energy.
-6. The system confirms that the checkpoint was saved.
+4. The system advances to the next day.
+5. The system retrieves the historical Toronto weather for the real date matched to the new day and converts it into a game condition: clear, cloudy, rain, or snow.
+6. The system restores energy according to the weather condition.
+7. The system saves the selected major, assigned courses, completed challenges, preparation points, exam results, energy, current day, and the day's weather.
+8. The system shows the new day: day number, weather, and restored energy.
 
 **Extensions:**
 - **3a — The player cancels:** Nothing changes.
-- **4a — Energy is already full:** The system keeps energy at its maximum and continues to save the checkpoint.
-- **5a — Saving fails:** Energy remains restored for the current session. The system reports that progress was not saved and offers a save retry.
+- **5a — The weather source is unavailable:** The system uses its bundled copy of the same historical weather data and continues at step 6.
+- **6a — Energy is already above the weather-based level:** The system keeps the current energy and continues to save the checkpoint.
+- **7a — Saving fails:** The new day and restored energy remain for the current session. The system reports that progress was not saved and offers a save retry.
 
-**MVP boundary:** Rest is immediate. No sleep schedule, day progression, or real-time waiting. Residence is always accessible at zero energy.
+**MVP boundary:** Rest is immediate, with no real-time waiting. The day number and weather only affect energy restored at Residence; they do not affect other buildings. There is no term calendar, exam date, or class schedule. Residence is always accessible at zero energy.
+
+**Rule to finalize:** The real start date matched to day 1, and the energy restored for each condition (proposed: clear 100%, cloudy 95%, rain 85%, snow 80% of maximum).
 
 ---
 
@@ -254,8 +234,8 @@ Walking animation is a stretch goal. Opening hours, weather effects, and travel 
 1. The player requests to continue.
 2. The system finds the saved checkpoint.
 3. The system checks that the checkpoint is valid.
-4. The system restores the player's major, assigned courses, completed challenges, preparation points, exam results, and energy.
-5. The system displays Residence with the restored progress.
+4. The system restores the player's major, assigned courses, completed challenges, preparation points, exam results, energy, current day, and the day's weather.
+5. The system displays Residence with the restored day, weather, and progress.
 
 **Extensions:**
 - **2a — No checkpoint exists:** The system explains that no saved game is available and offers a new game.
@@ -269,7 +249,7 @@ Walking animation is a stretch goal. Opening hours, weather effects, and travel 
 
 A small, clickable St. George Street connects the Registrar’s Office, Lecture Hall, Exam Centre, and Residence.
 
-Selecting a building opens its activity screen. Players can return to the street; leaving an unfinished activity follows that activity's cancellation rules.
+Selecting a building opens its activity screen. Players can return to the street; leaving an unfinished activity follows that activity's cancellation rules. Each member implements their building’s activity screen and its connection to the shared navigation.
 
 Navigation does not consume energy, and Residence remains accessible at zero energy. Walking animation is a stretch goal. Opening hours, weather effects, and travel costs are outside the MVP.
 
@@ -307,10 +287,20 @@ Represents a multiple-choice question, its answer options, correct answer, expla
 ### QuestionSession
 Represents an active class challenge or exam, tracking questions, submitted answers, completion status, and hint usage.
 
-## Supporting Value Object
+### GameDay
+Represents the current day number and the real date it is matched to. Resting advances it to the next day.
+- **Instance variables:** `dayNumber: int`, `startDate: LocalDate` (the real date matched to day 1)
+- **Methods:** `getRealDate(): LocalDate`, `next(): GameDay`
+
+## Supporting Value Objects
 
 ### ExamResult
 Represents the recorded score and course grade from a completed exam.
+
+### DailyWeather
+Represents one game day's weather: the real date, the game condition (clear, cloudy, rain, or snow), and the high and low temperatures. Converting raw API data into a game condition happens outside the entity.
+- **Instance variables:** `date: LocalDate`, `condition: WeatherCondition` (`CLEAR`, `CLOUDY`, `RAIN`, or `SNOW`), `highTemperature: double`, `lowTemperature: double`
+- **Methods:** `getEnergyRestorePercent(): int` (based on the condition), getters (immutable)
 
 ---
 ## API Usage
@@ -320,6 +310,15 @@ Represents the recorded score and course grade from a completed exam.
 
 **How it will be used:** Suggestion only: university-level multiple-choice questions for classes and exams, with
 each course mapped to an MMLU subject.
+
+**Planned US4 API:** [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
+
+**How it will be used:** Each game day is matched to a real date, and that day's Toronto weather (clear, cloudy, rain,
+or snow) is shown when the player wakes up and decides how much energy is restored. A bundled copy of the same data is
+used if the API is unavailable.
+
+**Status:** Successfully called from a standalone Java test (`java.net.http.HttpClient`, no API key needed). Not yet
+integrated into the game.
 
 ---
 ## Design Diagrams
