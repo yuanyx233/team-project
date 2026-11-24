@@ -2,10 +2,16 @@ package view;
 
 import app.Main;
 import app.ClassChallengeFactory;
+import data_access.CampusMapResourceLoader;
 import data_access.FileGameStateDataAccessObject;
+import entity.Building;
+import entity.CampusMap;
 import entity.GameDay;
 import entity.Player;
+import entity.Walker;
 import interface_adapter.ViewManagerModel;
+import interface_adapter.map.MapController;
+import interface_adapter.map.MapViewModel;
 import interface_adapter.continue_game.ContinueGameController;
 import interface_adapter.continue_game.TitleViewModel;
 import interface_adapter.rest.RestController;
@@ -27,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import support.FakeChallengeState;
 import use_case.rest.RestInputBoundary;
+import view.map.MapView;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -95,20 +102,55 @@ class GameViewTest {
             button(currentPage(view), "New Game").doClick();
             view = (GameView) root.getComponent(0);
 
-            String[][] buildings = {
-                {"Registrar's Office", "registrar"},
-                {"Lecture Hall", "lecture"},
-                {"Exam Centre", "exam"},
-                {"Innis Residence", "residence"}
-            };
-            for (String[] building : buildings) {
-                assertEquals("street", currentPage(view).getName());
-                button(currentPage(view), building[0]).doClick();
-                assertEquals(building[1], currentPage(view).getName());
-                button(currentPage(view), "Back to Street").doClick();
-            }
+            // The street is the walkable map; a new game starts outside the residence door.
+            assertEquals("street", currentPage(view).getName());
+            MapView street = (MapView) currentPage(view);
+            street.walk(0, -1, 0.2);
+            street.interact();
+            assertEquals("residence", currentPage(view).getName());
+            button(currentPage(view), "Back to Street").doClick();
+            assertEquals("street", currentPage(view).getName());
             button(currentPage(view), "Title Screen").doClick();
             assertEquals("title", currentPage(view).getName());
+        });
+    }
+
+    @Test
+    void mapDoorsOpenEveryBuildingPageAndReturnToStreet() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            ViewManagerModel navigation = new ViewManagerModel();
+            TitleView title = new TitleView(new TitleViewModel(),
+                    new ContinueGameController(() -> fail("Continue is outside this navigation test")),
+                    () -> navigation.setActiveView("street"));
+            RestInputBoundary unusedRest = new RestInputBoundary() {
+                @Override public void execute() { fail("Rest is outside this navigation test"); }
+                @Override public void retrySave() { fail("Save is outside this navigation test"); }
+            };
+            ResidenceView residence = new ResidenceView(new RestViewModel(), new RestController(unusedRest),
+                    () -> navigation.setActiveView("street"));
+            CampusMap map = CampusMapResourceLoader.load(CampusMapResourceLoader.DEFAULT_MAP);
+            Walker walker = new Walker(0, 0);
+            MapViewModel mapModel = new MapViewModel();
+            MapView street = new MapView(mapModel, new MapController(map, walker, mapModel, navigation),
+                    () -> navigation.setActiveView("title"));
+            GameView view = new GameView(title, residence, navigation,
+                    GameView.defaultLecturePage(navigation), street);
+
+            String[][] pages = {
+                {"REGISTRAR", "registrar"},
+                {"LECTURE_HALL", "lecture"},
+                {"EXAM_CENTRE", "exam"},
+                {"RESIDENCE", "residence"}
+            };
+            for (String[] page : pages) {
+                navigation.setActiveView("street");
+                walker.placeBelow(map.doorOf(Building.valueOf(page[0])));
+                street.walk(0, -1, 0.2);
+                street.interact();
+                assertEquals(page[1], currentPage(view).getName());
+                button(currentPage(view), "Back to Street").doClick();
+                assertEquals("street", currentPage(view).getName());
+            }
         });
     }
 
@@ -128,7 +170,9 @@ class GameViewTest {
             button(currentPage(view), "Title Screen").doClick();
             button(currentPage(view), "New Game").doClick();
             view = (GameView) root.getComponent(0);
-            button(currentPage(view), "Innis Residence").doClick();
+            MapView street = (MapView) currentPage(view);
+            street.walk(0, -1, 0.2);
+            street.interact();
             assertTrue(hasText(currentPage(view), "Day 1"));
             assertTrue(hasText(currentPage(view), "Energy: 100 / 100"));
         });
