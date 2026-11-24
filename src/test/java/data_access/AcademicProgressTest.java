@@ -140,6 +140,7 @@ class AcademicProgressTest {
                 return new DailyWeather(date, WeatherCondition.CLEAR, 20, 10);
             }, new RestOutputBoundary() {
                 @Override public void prepareSuccessView(RestOutputData data) { }
+                @Override public void prepareFailView(String message) { fail(message); }
                 @Override public void prepareSaveRetryView(boolean saved) { }
             });
             Future<?> pending = worker.submit(rest::execute);

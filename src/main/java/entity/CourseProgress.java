@@ -1,6 +1,9 @@
 package entity;
 
-/** Initial progress record. US2 and US3 can extend this agreed shared model. */
+import java.util.Objects;
+import java.util.Optional;
+
+/** Completed work for one assigned course. Exam progress is owned by UC3. */
 public final class CourseProgress {
     private final String courseId;
     private ChallengeResult challengeResult;
@@ -15,23 +18,30 @@ public final class CourseProgress {
 
     public String getCourseId() { return courseId; }
 
-    public ChallengeResult getChallengeResult() { return challengeResult; }
-    public ExamResult getExamResult() { return examResult; }
-    public int getPreparationPoints() {
+    public synchronized Optional<ChallengeResult> getChallengeResult() {
+        return Optional.ofNullable(challengeResult);
+    }
+
+    public synchronized int getPreparationPoints() {
         return challengeResult == null ? 0 : challengeResult.getPreparationPoints();
     }
 
-    public void completeChallenge(ChallengeResult result) {
+    /** Records completed work once; callers must handle retries before calling this method. */
+    public synchronized void recordChallengeResult(ChallengeResult result) {
+        Objects.requireNonNull(result, "Challenge result cannot be null.");
         if (challengeResult != null) {
-            throw new IllegalStateException("This challenge is already completed.");
+            throw new IllegalStateException("This course's class challenge is already completed.");
         }
-        challengeResult = java.util.Objects.requireNonNull(result);
+        challengeResult = result;
     }
 
-    public void completeExam(ExamResult result) {
+    public synchronized ExamResult getExamResult() { return examResult; }
+
+    public synchronized void completeExam(ExamResult result) {
+        Objects.requireNonNull(result);
         if (examResult != null) {
             throw new IllegalStateException("This exam is already completed.");
         }
-        examResult = java.util.Objects.requireNonNull(result);
+        examResult = result;
     }
 }

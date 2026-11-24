@@ -9,6 +9,8 @@ import entity.Player;
  * and the completed progress is saved as a checkpoint.
  */
 public class RestInteractor implements RestInputBoundary {
+    static final String ACTIVITY_IN_PROGRESS_MESSAGE = "Finish or leave your challenge or exam before resting.";
+
     private final RestGameStateDataAccessInterface gameState;
     private final RestWeatherDataAccessInterface weatherSource;
     private final RestOutputBoundary presenter;
@@ -23,7 +25,15 @@ public class RestInteractor implements RestInputBoundary {
 
     @Override
     public void execute() {
-        gameState.beginRest();
+        if (gameState.getPlayer().hasActiveActivity()) {
+            presenter.prepareFailView(ACTIVITY_IN_PROGRESS_MESSAGE);
+            return;
+        }
+        try { gameState.beginRest(); }
+        catch (IllegalStateException exception) {
+            presenter.prepareFailView(ACTIVITY_IN_PROGRESS_MESSAGE);
+            return;
+        }
         try {
             GameDay newDay = gameState.getCurrentDay().next();
 

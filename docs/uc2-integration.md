@@ -30,7 +30,7 @@ flowchart LR
     U --> Q[QuestionGateway]
     H[HuggingFaceQuestionGateway: HTTP / Gson] -. implements .-> Q
     U --> S[ChallengeStateGateway]
-    A[Team shared-state adapter: pending] -. implements .-> S
+    A[SharedChallengeStateGateway: Player / AcademicRecord] -. implements .-> S
     U --> O[ChallengeOutputBoundary]
     P[ChallengePresenter] -. implements .-> O
     P --> M[ChallengeViewModel: plain state]
@@ -72,31 +72,34 @@ sequenceDiagram
     end
 ```
 
-## Shared-state integration: still pending
+## Shared-state adapter and remaining application wiring
 
 Coordination issues: [energy and state #9](https://github.com/yuanyx233/team-project/issues/9),
 [academic data #10](https://github.com/yuanyx233/team-project/issues/10), and
 [question API/navigation #11](https://github.com/yuanyx233/team-project/issues/11).
-These interfaces are proposals for review, not an agreed or completed team integration.
+`SharedChallengeStateGateway` now implements the UC2 state port over the actual shared entities.
+The default application still needs the course-topic agreement and the shared academic-state owner.
 
-The inspected baseline is main `59c2805` (including UC2 and UC3's ExamBattle) and the `uc1-choose-major` branch.
+The inspected baseline is main `9fc93e0`, including the shared Player APIs (#20) and UC1 entities (#21).
 The battle permits up to five answers, so EXAM question requests now
 support up to five questions. This does not change the three-question UC2 challenge or UC3's battle rules.
 
 | Actual teammate code | Remaining connection |
 |---|---|
-| `Player.getEnergy/getMaxEnergy/restoreEnergyToPercent` | No consume-energy operation yet |
-| `Course.getId/getName/getQuestionCategory` | Categories are currently computing/biology/history, not six course-specific topics |
-| `AcademicRecord.getSelectedMajor/getCourseProgress` | Use this same record across buildings and Continue |
-| `CourseProgress.getCourseId` | No challenge result or preparation-point fields yet |
-| `FileGameStateDataAccessObject` | Does not persist academic progress yet; Continue replaces Player |
-| `Main.createView` / `Main.showGame` and `GameView` | Construct the shared state and navigation; the default app still needs its real Lecture Hall state adapter |
+| `Player.spendEnergy/startActivity/finishActivity` | Used by the UC2 adapter; real Rest/Continue reject its active lock |
+| `Course.getId/getName/getQuestionCategory` | The catalogue's six course names/categories differ from the README topics; confirm the mapping in #10 |
+| `AcademicRecord.getSelectedMajor/getCourseProgress` | Read dynamically through the existing `AcademicRecordAccess` port |
+| `CourseProgress.getChallengeResult/getPreparationPoints/recordChallengeResult` | Added for UC2; the checkpoint owner must persist and restore the completed result |
+| `FileGameStateDataAccessObject` | PR #22 adds major/course ownership and persistence; completed challenge saving is still pending |
+| `Main.createView` / `Main.showGame` and `GameView` | Supply the agreed topic map and the same state owner to the adapter and other buildings |
 
-The UC1 demo currently uses COMP1/COMP2, BIO1/BIO2, HIST1/HIST2. They have not been assumed as agreed IDs.
-UC2 treats IDs as opaque and receives a `QuestionTopic` explicitly. Do not infer identity from the course name
-or pass a whole major's category as a course-specific topic.
+The merged UC1 catalogue uses CS101/CS201, BIO101/BIO201 and HIST101/HIST201. Its Computing Foundations,
+College Computer Science, Biology Foundations, College Biology, World History and European History do not
+match all six README courses. UC2 does not silently map a college or European-history course to a different
+topic. The adapter requires an explicit `Map<String, QuestionTopic>` from the composition root; missing
+entries throw before spending energy or changing progress.
 
-The state owner supplies an adapter implementing:
+The adapter implements:
 
 ```java
 ChallengeOverview loadOverview() throws ChallengeStateException;
@@ -118,15 +121,30 @@ ChallengeOverview abandonChallenge(String attemptId) throws ChallengeStateExcept
 - Rest, Continue and New Game must respect the same active-activity rule. The checkpoint must include completed
   results and preparation points. Do not save an unfinished QuestionSession.
 
-After those APIs are agreed, create the page on the EDT with the **same shared state** as the other buildings:
+`CourseProgress.recordChallengeResult(result)` records one immutable result and rejects overwriting it.
+`getPreparationPoints()` derives points from that result, so a separate mutable points total is unnecessary.
+The adapter handles duplicate attempt IDs; these session-only records are not checkpoint data. Old attempts
+are rejected if the current Player or AcademicRecord has been replaced.
+
+The checkpoint owner can restore completed work by constructing a `ChallengeResult(correctCount, questionCount)`
+and calling `recordChallengeResult` on the corresponding course progress. Loading must still validate all
+saved data before replacing the shared state. This change does not alter the save schema or PR #22.
+
+After the course mapping and shared academic owner are agreed, create the page on the EDT with the
+**same shared state** as the other buildings:
 
 ```java
+SharedChallengeStateGateway sharedChallengeStateAdapter = new SharedChallengeStateGateway(
+        currentPlayerSupplier, currentAcademicRecordAccess, agreedCourseTopics);
 ClassChallengeView lecture = ClassChallengeFactory.create(
         sharedChallengeStateAdapter, () -> navigation.setActiveView("street"));
 GameView game = new GameView(title, residence, navigation, lecture);
 ```
 
-`sharedChallengeStateAdapter` is the proposed external adapter, not an existing concrete class.
+`currentPlayerSupplier` is a `Supplier<Player>` that reads the current shared player on each call;
+`currentAcademicRecordAccess` is UC1's existing `AcademicRecordAccess`, also read on each action.
+For example, once PR #22 is merged, its DAO can supply `gameState::getPlayer` and implement
+`AcademicRecordAccess` directly. `agreedCourseTopics` must be supplied explicitly after #10 is resolved.
 The four-argument GameView constructor accepts this exact page instance; the existing three-argument
 constructor retains its placeholder for callers without the shared adapter. Create the real page in
 `Main.showGame`, where the shared state and navigation are constructed. PR #14 moved this wiring from
@@ -208,7 +226,10 @@ The UI tests exercise selection, confirmation, duplicate-start protection, backg
 feedback, all three submissions, completion, navigation after success, and API error/retry presentation.
 Interactor tests also cover enrolment, completed-result viewing, exact/insufficient energy, early exit,
 stale requests, concurrency, and failed completion retry. HTTP tests use a local test server or injected
-responses. Tests with the fake state validate UC2 and the proposed port, not the unfinished team adapter.
+responses. `SharedChallengeStateGatewayTest` also exercises the actual Player, AcademicRecord and
+CourseProgress: one-time charging/rewards, early exit, changed state, API failures, and the real
+Rest/Continue interactors respecting the challenge lock. These checks do not cover the pending
+checkpoint persistence of challenge results or the final application course-topic mapping.
 
 Live API check on macOS/Linux, after building:
 
