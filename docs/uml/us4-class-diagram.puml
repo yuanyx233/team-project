@@ -144,6 +144,8 @@ package data_access {
     - currentDay: GameDay
     - player: Player
     - currentWeather: DailyWeather
+    - academicRecord: AcademicRecord
+    + getAcademicRecord(): AcademicRecord
   }
   class OpenMeteoWeatherDataAccessObject {
     + {static} DEFAULT_BASE_URL: String
@@ -195,6 +197,16 @@ package entity {
   }
 }
 
+package "US1 (shown for context)" {
+  interface AcademicRecordAccess {
+    + getAcademicRecord(): AcademicRecord
+  }
+  class AcademicRecord {
+    + getSelectedMajor(): Major
+    + confirmMajor(major: Major): void
+  }
+}
+
 ' View layer
 TitleView --> ContinueGameController
 TitleView ..> TitleViewModel : observes
@@ -229,6 +241,8 @@ ContinueGamePresenter ..> ResidenceFormat
 ' Data access
 FileGameStateDataAccessObject ..|> RestGameStateDataAccessInterface
 FileGameStateDataAccessObject ..|> ContinueGameDataAccessInterface
+FileGameStateDataAccessObject ..|> AcademicRecordAccess
+FileGameStateDataAccessObject --> AcademicRecord
 FileGameStateDataAccessObject --> GameDay
 FileGameStateDataAccessObject --> Player
 FileGameStateDataAccessObject --> DailyWeather

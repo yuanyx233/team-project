@@ -228,7 +228,7 @@ three answers and final confirmation. Completed results can be viewed without ch
 
 **Rules:** Day 1 is matched to 2025-09-02. Energy is restored to a percentage of the maximum by weather: clear 100%, cloudy 95%, rain 85%, snow 80%.
 
-**Current status:** All steps and extensions are implemented. Step 7 currently saves energy, the current day and the day's weather only; the major, courses, challenge results, preparation points and exam results will be added to the checkpoint once the UC1–UC3 academic entities are merged.
+**Current status:** All steps and extensions are implemented. Step 7 currently saves energy, the current day, the day's weather, and the confirmed major with its assigned courses. Challenge results, preparation points and exam results will be added once UC2 and UC3 add them to `CourseProgress`.
 
 ---
 
@@ -259,7 +259,7 @@ three answers and final confirmation. Completed results can be viewed without ch
 
 **MVP boundary:** Only completed progress saved at Residence is restored. Unfinished challenges and exams are not saved.
 
-**Current status:** Implemented, including extensions 1a, 2a and 3a. Step 4 currently restores energy, the current day and the day's weather; academic progress follows the UC4 checkpoint.
+**Current status:** Implemented, including extensions 1a, 2a and 3a. Step 4 currently restores energy, the current day, the day's weather, and the confirmed major with its assigned courses. Checkpoints saved before the major was stored load with no major.
 
 ---
 

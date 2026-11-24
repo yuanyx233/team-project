@@ -1,11 +1,16 @@
 package data_access;
 
+import entity.AcademicRecord;
+import entity.Course;
 import entity.DailyWeather;
 import entity.GameDay;
+import entity.Major;
 import entity.Player;
 import entity.WeatherCondition;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import use_case.choose_major.AcademicRecordAccess;
 import use_case.continue_game.ContinueGameDataAccessInterface;
 import use_case.continue_game.InvalidCheckpointException;
 import use_case.rest.RestGameStateDataAccessInterface;
@@ -18,19 +23,24 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Holds the current game state and saves it to / loads it from a JSON checkpoint file.
- * Only completed progress is saved; the academic record is to be added once the team's entities exist.
+ * Only completed progress is saved: the day, energy, weather, and the confirmed major with its courses.
+ * Version 1 checkpoints (saved before the academic record existed) load with no major.
  */
 public class FileGameStateDataAccessObject
-        implements RestGameStateDataAccessInterface, ContinueGameDataAccessInterface {
-    static final int FORMAT_VERSION = 1;
+        implements RestGameStateDataAccessInterface, ContinueGameDataAccessInterface, AcademicRecordAccess {
+    static final int FORMAT_VERSION = 2;
+    private static final int OLDEST_SUPPORTED_VERSION = 1;
 
     private final Path file;
     private GameDay currentDay;
     private Player player;
     private DailyWeather currentWeather;
+    private AcademicRecord academicRecord = new AcademicRecord();
 
     /**
      * @param file where the checkpoint is stored
@@ -58,6 +68,9 @@ public class FileGameStateDataAccessObject
                     .put("high", currentWeather.getHighTemperature())
                     .put("low", currentWeather.getLowTemperature()));
         }
+        if (academicRecord.hasConfirmedMajor()) {
+            json.put("major", toJson(academicRecord.getSelectedMajor()));
+        }
         try {
             if (file.getParent() != null) {
                 Files.createDirectories(file.getParent());
@@ -80,7 +93,8 @@ public class FileGameStateDataAccessObject
     public void loadCheckpoint() throws InvalidCheckpointException {
         try {
             JSONObject json = new JSONObject(Files.readString(file, StandardCharsets.UTF_8));
-            if (json.getInt("version") != FORMAT_VERSION) {
+            int version = json.getInt("version");
+            if (version < OLDEST_SUPPORTED_VERSION || version > FORMAT_VERSION) {
                 throw new InvalidCheckpointException("Unsupported checkpoint version: " + json.getInt("version"));
             }
             GameDay day = new GameDay(json.getInt("dayNumber"), LocalDate.parse(json.getString("startDate")));
@@ -96,13 +110,53 @@ public class FileGameStateDataAccessObject
                         WeatherCondition.valueOf(w.getString("condition")),
                         w.getDouble("high"), w.getDouble("low"));
             }
+            AcademicRecord record = new AcademicRecord();
+            if (json.has("major")) {
+                record.confirmMajor(majorFromJson(json.getJSONObject("major")));
+            }
             // Only replace the state once everything has been read successfully.
             currentDay = day;
             player = new Player(energy, maxEnergy);
             currentWeather = weather;
+            academicRecord = record;
         } catch (IOException | JSONException | DateTimeException | IllegalArgumentException e) {
             throw new InvalidCheckpointException("Checkpoint is damaged: " + e.getMessage(), e);
         }
+    }
+
+    private static JSONObject toJson(Major major) {
+        JSONArray courses = new JSONArray();
+        for (Course course : major.getCourses()) {
+            courses.put(new JSONObject()
+                    .put("id", course.getId())
+                    .put("name", course.getName())
+                    .put("questionCategory", course.getQuestionCategory()));
+        }
+        return new JSONObject()
+                .put("id", major.getId())
+                .put("name", major.getName())
+                .put("description", major.getDescription())
+                .put("sourceUrl", major.getSourceUrl())
+                .put("source", major.getSource().name())
+                .put("courses", courses);
+    }
+
+    private static Major majorFromJson(JSONObject json) {
+        JSONArray array = json.getJSONArray("courses");
+        List<Course> courses = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject course = array.getJSONObject(i);
+            courses.add(new Course(course.getString("id"), course.getString("name"),
+                    course.getString("questionCategory")));
+        }
+        return new Major(json.getString("id"), json.getString("name"), json.getString("description"),
+                courses, json.getString("sourceUrl"), Major.Source.valueOf(json.getString("source")));
+    }
+
+    /** @return the current academic record; a new object after each successful load */
+    @Override
+    public AcademicRecord getAcademicRecord() {
+        return academicRecord;
     }
 
     @Override
