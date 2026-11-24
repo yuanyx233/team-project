@@ -16,14 +16,20 @@ public class GameView extends JPanel {
     /** Allows the composition root to supply UC2's page with the shared state already injected. */
     public GameView(TitleView title, ResidenceView residence, ViewManagerModel navigation,
                     JPanel lecture) {
+        this(title, residence, navigation, new BuildingView("Registrar's Office",
+                "Choose your major at Sidney Smith.", () -> navigation.setActiveView("street")), lecture,
+                new BuildingView("Exam Centre", "Take exams for your courses.",
+                        () -> navigation.setActiveView("street")));
+    }
+
+    public GameView(TitleView title, ResidenceView residence, ViewManagerModel navigation,
+                    JPanel registrar, JPanel lecture, JPanel exam) {
         setLayout(layout);
         addPage("title", title);
         addPage("street", new StreetView(navigation::setActiveView));
-        addPage("registrar", new BuildingView("Registrar's Office",
-                "Choose your major at Sidney Smith.", () -> navigation.setActiveView("street")));
+        addPage("registrar", Objects.requireNonNull(registrar));
         addPage("lecture", Objects.requireNonNull(lecture, "Lecture Hall page is required"));
-        addPage("exam", new BuildingView("Exam Centre",
-                "Take exams for your courses.", () -> navigation.setActiveView("street")));
+        addPage("exam", Objects.requireNonNull(exam));
         addPage("residence", residence);
         navigation.addPropertyChangeListener(event -> layout.show(this, navigation.getActiveView()));
     }

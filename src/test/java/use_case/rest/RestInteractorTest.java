@@ -137,4 +137,15 @@ class RestInteractorTest {
         assertEquals(20, state.getPlayer().getEnergy());
         assertEquals(0, state.saveCount);
     }
+    @Test
+    void missingWeatherDoesNotAdvanceDay() {
+        FakeGameState state = new FakeGameState();
+        RestInteractor rest = new RestInteractor(state, date -> {
+            throw new IllegalArgumentException("Weather unavailable");
+        }, new CapturingPresenter());
+        assertThrows(IllegalArgumentException.class, rest::execute);
+        assertEquals(1, state.day.getDayNumber());
+        assertEquals(20, state.player.getEnergy());
+        assertEquals(0, state.saveCount);
+    }
 }

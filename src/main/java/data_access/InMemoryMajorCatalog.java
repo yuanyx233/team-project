@@ -30,13 +30,13 @@ public final class InMemoryMajorCatalog implements MajorCatalogDataAccessInterfa
     public static InMemoryMajorCatalog predefined() {
         return new InMemoryMajorCatalog(List.of(
                 new Major("cs", "Computer Science", "Explore computing foundations and advanced concepts.", List.of(
-                        new Course("CS101", "Computing Foundations", "high_school_computer_science"),
-                        new Course("CS201", "College Computer Science", "college_computer_science"))),
+                        new Course("CS101", "Programming Foundation", "high_school_computer_science"),
+                        new Course("CS201", "Software Design", "high_school_computer_science"))),
                 new Major("biology", "Biology", "Explore living systems and biological concepts.", List.of(
-                        new Course("BIO101", "Biology Foundations", "high_school_biology"),
-                        new Course("BIO201", "College Biology", "college_biology"))),
+                        new Course("BIO101", "Cell Biology", "high_school_biology"),
+                        new Course("BIO201", "Ecology", "high_school_biology"))),
                 new Major("history", "History", "Explore world and European history.", List.of(
                         new Course("HIST101", "World History", "high_school_world_history"),
-                        new Course("HIST201", "European History", "high_school_european_history")))));
+                        new Course("HIST201", "Historical Perspective", "high_school_world_history")))));
     }
 }
