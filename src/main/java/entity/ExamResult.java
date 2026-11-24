@@ -14,6 +14,18 @@ public final class ExamResult {
         won = battle.hasWon();
     }
 
+    public ExamResult(int correctCount, int answeredCount, boolean won) {
+        if (answeredCount < 3 || answeredCount > 5 || correctCount < 0 || correctCount > 3
+                || correctCount > answeredCount || answeredCount - correctCount > 4
+                || won != (correctCount == 3)
+                || (!won && answeredCount < 5 && answeredCount - correctCount < 3)) {
+            throw new IllegalArgumentException("Invalid exam result.");
+        }
+        this.correctCount = correctCount;
+        this.answeredCount = answeredCount;
+        this.won = won;
+    }
+
     public int getCorrectCount() {
         return correctCount;
     }

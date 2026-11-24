@@ -24,6 +24,13 @@ public class Player {
         return energy;
     }
 
+    public void spendEnergy(int cost) {
+        if (cost < 0 || cost > energy) {
+            throw new IllegalArgumentException("Not enough energy. Rest at Residence first.");
+        }
+        energy -= cost;
+    }
+
     public int getMaxEnergy() {
         return maxEnergy;
     }
