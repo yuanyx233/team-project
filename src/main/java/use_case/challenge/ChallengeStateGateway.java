@@ -3,9 +3,9 @@ package use_case.challenge;
 import entity.ChallengeResult;
 
 /**
- * Proposed integration port; see GitHub issues #9 and #10.
+ * Shared-state integration port; see GitHub issues #9 and #10.
  * Mutations must be atomic, attempt-ID-idempotent, and leave state unchanged on failure.
- * The shared state owner supplies an implementation over the current Player/academic record.
+ * Implementations adapt the current Player and academic record from the shared state owner.
  */
 public interface ChallengeStateGateway {
     ChallengeOverview loadOverview() throws ChallengeStateException;
