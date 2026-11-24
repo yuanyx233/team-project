@@ -7,6 +7,7 @@ import java.util.Optional;
 public final class CourseProgress {
     private final String courseId;
     private ChallengeResult challengeResult;
+    private ExamResult examResult;
 
     public CourseProgress(String courseId) {
         if (courseId == null || courseId.isBlank()) {
@@ -32,5 +33,15 @@ public final class CourseProgress {
             throw new IllegalStateException("This course's class challenge is already completed.");
         }
         challengeResult = result;
+    }
+
+    public synchronized ExamResult getExamResult() { return examResult; }
+
+    public synchronized void completeExam(ExamResult result) {
+        Objects.requireNonNull(result);
+        if (examResult != null) {
+            throw new IllegalStateException("This exam is already completed.");
+        }
+        examResult = result;
     }
 }

@@ -8,6 +8,16 @@ import entity.Player;
  * Access to the current game state needed by the rest use case.
  */
 public interface RestGameStateDataAccessInterface {
+    default boolean hasActiveActivity() { return false; }
+
+    default void beginRest() {
+        if (hasActiveActivity()) {
+            throw new IllegalStateException("Finish or leave the current activity before resting.");
+        }
+    }
+
+    default void endRest() { }
+
     GameDay getCurrentDay();
 
     void setCurrentDay(GameDay day);

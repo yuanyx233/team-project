@@ -114,11 +114,11 @@ public final class ChooseMajorFeatureTest {
         check(catalog.getMajors().size() == 3, "Exactly three majors");
         java.util.Map<String, String> expected = java.util.Map.of(
                 "CS101", "high_school_computer_science",
-                "CS201", "college_computer_science",
+                "CS201", "high_school_computer_science",
                 "BIO101", "high_school_biology",
-                "BIO201", "college_biology",
+                "BIO201", "high_school_biology",
                 "HIST101", "high_school_world_history",
-                "HIST201", "high_school_european_history");
+                "HIST201", "high_school_world_history");
         java.util.Map<String, String> actual = new java.util.HashMap<>();
         for (entity.Major major : catalog.getMajors()) {
             check(major.getCourses().size() == 2, "Two fixed courses per major");

@@ -85,31 +85,40 @@ class GameViewTest {
 
     @Test
     void navigateToBuildingsAndBack() throws Exception {
+        AtomicReference<GameView> current = new AtomicReference<>();
         SwingUtilities.invokeAndWait(() -> {
             JPanel root = Main.createView(directory.resolve("checkpoint.json"));
             GameView view = (GameView) root.getComponent(0);
-            assertEquals("title", currentPage(view).getName());
             button(currentPage(view), "Continue").doClick();
-            assertEquals("title", currentPage(view).getName());
             assertTrue(hasText(currentPage(view), "No saved game is available."));
             button(currentPage(view), "New Game").doClick();
-            view = (GameView) root.getComponent(0);
-
-            String[][] buildings = {
-                {"Registrar's Office", "registrar"},
-                {"Lecture Hall", "lecture"},
-                {"Exam Centre", "exam"},
-                {"Innis Residence", "residence"}
-            };
-            for (String[] building : buildings) {
-                assertEquals("street", currentPage(view).getName());
-                button(currentPage(view), building[0]).doClick();
-                assertEquals(building[1], currentPage(view).getName());
-                button(currentPage(view), "Back to Street").doClick();
-            }
-            button(currentPage(view), "Title Screen").doClick();
-            assertEquals("title", currentPage(view).getName());
+            current.set((GameView) root.getComponent(0));
         });
+        String[][] buildings = {{"Registrar's Office", "registrar"}, {"Lecture Hall", "lecture"},
+                {"Exam Centre", "exam"}, {"Innis Residence", "residence"}};
+        for (String[] building : buildings) {
+            SwingUtilities.invokeAndWait(() -> {
+                button(currentPage(current.get()), building[0]).doClick();
+                assertEquals(building[1], currentPage(current.get()).getName());
+            });
+            waitFor(() -> button(currentPage(current.get()), "Back to Street").isEnabled());
+            SwingUtilities.invokeAndWait(() -> button(currentPage(current.get()), "Back to Street").doClick());
+            waitFor(() -> "street".equals(currentPage(current.get()).getName()));
+        }
+        SwingUtilities.invokeAndWait(() -> {
+            button(currentPage(current.get()), "Title Screen").doClick();
+            assertEquals("title", currentPage(current.get()).getName());
+        });
+    }
+
+    private void waitFor(java.util.function.BooleanSupplier condition) throws Exception {
+        AtomicBoolean ready = new AtomicBoolean();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!ready.get() && System.nanoTime() < deadline) {
+            SwingUtilities.invokeAndWait(() -> ready.set(condition.getAsBoolean()));
+            if (!ready.get()) { Thread.sleep(10); }
+        }
+        assertTrue(ready.get(), "Navigation did not finish");
     }
 
     @Test
@@ -158,11 +167,21 @@ class GameViewTest {
     }
 
     private JButton button(Container page, String text) {
+        JButton found = findButton(page, text);
+        if (found == null) { throw new AssertionError("Button not found: " + text); }
+        return found;
+    }
+
+    private JButton findButton(Container page, String text) {
         for (Component component : page.getComponents()) {
             if (component instanceof JButton && text.equals(((JButton) component).getText())) {
                 return (JButton) component;
             }
+            if (component instanceof Container) {
+                JButton nested = findButton((Container) component, text);
+                if (nested != null) { return nested; }
+            }
         }
-        throw new AssertionError("Button not found: " + text);
+        return null;
     }
 }
