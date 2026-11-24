@@ -62,12 +62,12 @@ As a student player, I want to complete a class challenge for a course attached 
 - **MVP:** Complete one short challenge per assigned course, receive immediate feedback, spend energy, and earn preparation points.
 - **Outside MVP:** Repeated challenges for additional rewards and scheduled classes.
 
-### US3 — Take a Course Exam
-As a student player, I want to take an exam for a course attached to my major and receive my result so that I can earn a course grade.
+### US3 — Fight the Final Monster
+As a student player, I want to answer course questions in a Boss battle and use skills unlocked by class preparation so that I can defeat the Final Monster and earn a course grade.
 
 - **Building:** Exam Centre
 - **Responsible team member:** Zhenbin An
-- **MVP:** Complete one exam per assigned course, spend energy, and receive a recorded score and course grade. Preparation points can unlock one optional hint.
+- **MVP:** Fight one exam Boss per assigned course using Hugging Face questions. Correct answers attack the Boss; wrong answers hurt the player. Preparation points unlock Hint and Shield. Both wins and losses produce a recorded grade.
 - **Outside MVP:** Exam dates, timers, retakes, and GPA calculation.
 
 ### US4 — Rest, Start a New Day, and Save Progress
@@ -152,44 +152,37 @@ three answers and final confirmation. Completed results can be viewed without ch
 
 ---
 
-### UC3 — Take a Course Exam
+### UC3 — Fight the Final Monster
 
 **Supports:** US3  
 **Location:** Exam Centre  
 **Primary actor:** Student player
 
-**Preconditions:**
-- The player has confirmed a major and received its attached courses.
-- Exam questions and a grading rule are available for the assigned courses.
+**Preconditions:** A major is confirmed, the course is assigned, and no other activity is running.
 
-**Trigger:** The player requests to take a course exam.
+**Main flow:**
+1. The player selects a course and reads the rules and available skills.
+2. On confirmation, the system loads five distinct four-option questions from Hugging Face.
+3. If loading succeeds, the system checks energy again and spends 40 Energy once.
+4. The player and Final Monster start with 60 HP. A correct answer deals 20 damage to the Boss;
+   an incorrect answer deals 20 damage to the player.
+5. The player may use Hint with at least one preparation point, or Shield with at least two.
+   Each skill can be used once per battle, without spending points. Hint removes one wrong option;
+   Shield blocks the next wrong answer's damage, but the answer is still counted as wrong.
+6. The battle ends when either HP reaches zero or five questions have been answered.
+   The player wins only if the Boss reaches zero HP.
+7. The system records the result before allowing the player to leave the final feedback screen.
+   Score = correct answers / actual answers submitted * 100. Grades: A >= 80, B >= 70,
+   C >= 60, D >= 50, otherwise F.
 
-**Success outcome:** The exam score and course grade are recorded, and the player sees the result.
-
-**Main success scenario:**
-1. The system displays the player's assigned courses and exam-completion status.
-2. The player selects a course.
-3. The system checks that its exam is unfinished and sufficient energy is available.
-4. The system explains the exam length, energy cost, and whether preparation points have unlocked an optional hint.
-5. The player confirms participation.
-6. The system deducts energy and presents the exam questions.
-7. The player answers the questions and submits the exam.
-8. The system checks that all required answers are present.
-9. The system evaluates the answers and determines the score and course grade.
-10. The system records the result and displays the score, grade, and updated energy.
-
-**Extensions:**
-- **3a — The exam is already completed:** The system displays the existing result without starting another attempt or deducting energy.
-- **3b — Insufficient energy:** The system suggests resting. The exam does not start and no energy is deducted.
-- **5a — The player cancels before starting:** Nothing changes.
-- **6a — Questions cannot be loaded:** The shared question gateway throws an error instead of using local questions. UC3 must leave no energy cost or exam result when loading fails.
-- **7a — The player requests an unlocked hint:** The system displays one hint for the selected question and marks the exam's hint as used.
-- **7b — The player cancels the exam:** The system confirms cancellation. No grade is recorded; spent energy is not refunded.
-- **8a — Required answers are missing:** The system identifies unanswered questions and allows completion before resubmission.
-
-**MVP boundary:** One exam per assigned course. No immediate correctness feedback during the exam. Exam dates, timers, retakes, and GPA calculation are outside the MVP.
-
-**Rule to finalize:** Agree on the preparation-point threshold that unlocks the hint and the score-to-grade conversion.
+**Alternatives:**
+- Completed course: show its previous result, without another charge or retake.
+- No major, unassigned course, insufficient energy or another active activity: explain the problem and do not start.
+- API failure or invalid questions: do not deduct energy; allow retry. Questions require an internet connection.
+- No answer selected: remain on the same question without damage.
+- Leave before starting: no change. Leave an unfinished battle: confirm, keep the energy cost and record no grade.
+- Duplicate or stale clicks: do not apply an answer or skill twice.
+- A win or loss is final for that course. Unfinished battles are not saved.
 
 ---
 
@@ -218,6 +211,7 @@ three answers and final confirmation. Completed results can be viewed without ch
 8. The system shows the new day: day number, weather, and restored energy.
 
 **Extensions:**
+- **1a — A class challenge or exam is in progress:** The system asks the player to finish or leave it first. The day, energy, and checkpoint are unchanged.
 - **3a — The player cancels:** Nothing changes.
 - **5a — The weather source is unavailable:** The system uses its bundled copy of the same historical weather data and continues at step 6.
 - **6a — Energy is already above the weather-based level:** The system keeps the current energy and continues to save the checkpoint.
@@ -225,7 +219,9 @@ three answers and final confirmation. Completed results can be viewed without ch
 
 **MVP boundary:** Rest is immediate, with no real-time waiting. The day number and weather only affect energy restored at Residence; they do not affect other buildings. There is no term calendar, exam date, or class schedule. Residence is always accessible at zero energy.
 
-**Rule to finalize:** The real start date matched to day 1, and the energy restored for each condition (proposed: clear 100%, cloudy 95%, rain 85%, snow 80% of maximum).
+**Rules:** Day 1 is matched to 2025-09-02. Energy is restored to a percentage of the maximum by weather: clear 100%, cloudy 95%, rain 85%, snow 80%.
+
+**Current status:** All steps and extensions are implemented. Step 7 currently saves energy, the current day, the day's weather, and the confirmed major with its assigned courses. Challenge results, preparation points and exam results will be added once UC2 and UC3 add them to `CourseProgress`.
 
 ---
 
@@ -250,10 +246,13 @@ three answers and final confirmation. Completed results can be viewed without ch
 5. The system displays Residence with the restored day, weather, and progress.
 
 **Extensions:**
+- **1a — A class challenge or exam is in progress:** The system asks the player to finish or leave it first and does not load the checkpoint.
 - **2a — No checkpoint exists:** The system explains that no saved game is available and offers a new game.
 - **3a — The checkpoint is damaged or unsupported:** The system explains that it cannot be loaded and leaves the saved file unchanged.
 
 **MVP boundary:** Only completed progress saved at Residence is restored. Unfinished challenges and exams are not saved.
+
+**Current status:** Implemented, including extensions 1a, 2a and 3a. Step 4 currently restores energy, the current day, the day's weather, and the confirmed major with its assigned courses. Checkpoints saved before the major was stored load with no major.
 
 ---
 
@@ -280,6 +279,9 @@ Navigation does not consume energy, and Residence remains accessible at zero ene
 
 ### Player
 Represents the student character, their energy, and their academic record.
+- **Instance variables:** `energy: int`, `maxEnergy: int`, `activeAttemptId: String` (the challenge or exam in progress, if any)
+- **Methods:** `restoreEnergyToPercent(percent)`, `spendEnergy(amount)` (rejects negative amounts and insufficient energy without changing anything), `startActivity(attemptId)`, `finishActivity(attemptId)` (releases only the matching attempt; repeating it is harmless), `hasActiveActivity()`
+- The academic record is not part of `Player` yet.
 
 ### Major
 Represents a predefined major and its attached courses. Selecting a major automatically assigns those courses to the player.
@@ -343,14 +345,18 @@ text or answers and cannot be used offline. Practice and exam IDs are disjoint f
 (48 questions across 12 requests: three practice and five exam questions per course, no API key).
 Normal automated tests use test-only fixtures, without network.
 
-**Planned US4 API:** [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
+**US4 API:** [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
 
-**How it will be used:** Each game day is matched to a real date, and that day's Toronto weather (clear, cloudy, rain,
-or snow) is shown when the player wakes up and decides how much energy is restored. A bundled copy of the same data is
-used if the API is unavailable.
+**How it is used:** Each game day is matched to a real date, starting from 2025-09-02. When the player rests,
+`OpenMeteoWeatherDataAccessObject` requests that date's daily weather code and high/low temperatures for the St. George
+campus from `https://archive-api.open-meteo.com/v1/archive` (`java.net.http.HttpClient`, no API key). The WMO weather
+code is converted into clear, cloudy, rain, or snow, which decides how much energy is restored.
 
-**Status:** Successfully called from a standalone Java test (`java.net.http.HttpClient`, no API key needed). Not yet
-integrated into the game.
+**Status:** Integrated with Residence, energy recovery and checkpoint saving.
+
+**Fallback:** If the request fails or times out (5 s to connect, 10 s per request), `BundledWeatherDataAccessObject`
+reads the same Open-Meteo data saved in `src/main/resources/weather/toronto-weather.json`, covering 2025-09-02 to
+2025-12-31.
 
 ---
 ## Design Diagrams
@@ -362,16 +368,29 @@ integrated into the game.
 
 ---
 ## How to Run
-Use Java 11 or newer and Maven. Run `mvn test` to build and check all modules.
-The shared application starts with `mvn exec:java`; the Lecture Hall in that application remains a placeholder
-until the shared academic/state adapter is connected.
+Use JDK 11 or newer and Maven 3.9.x.
 
-To try the UC2 page now, run `view.ClassChallengePreview` from the test source set in IntelliJ, with an
-optional argument `cs`, `biology`, or `history`. This preview uses test-only player/course state and the
-real Hugging Face API. It does not save or represent a fully integrated game.
+```bash
+mvn clean test
+mvn compile exec:java
+```
 
-See [UC2 integration and command-line instructions](docs/uc2-integration.md) for the factory, adapter contract,
-test commands, and live API check.
+In IntelliJ, open `pom.xml` as a Maven project and run `app.Main`.
+Start a New Game, choose CS, Biology or History at the Registrar, and visit Lecture Hall to earn
+preparation points. Enter Exam Centre to fight the Final Monster. Residence restores energy and
+saves completed progress; Continue returns to the last saved day at Residence.
+
+Each major has two fictional courses:
+- CS: Programming Foundation, Software Design.
+- Biology: Cell Biology, Ecology.
+- History: World History, Historical Perspective.
+
+Questions come from Hugging Face and require internet access. A failed request does not spend energy.
+Checkpoint files are stored at `~/.stressdew-valley/checkpoint.json`.
+Old version-1 checkpoints still load; new checkpoints also save the major, class results and exam results.
+
+See [UC2 integration notes](docs/uc2-integration.md) for its standalone test preview and API check,
+and [UC3 integration notes](docs/uc3-integration.md) for the Boss battle wiring.
 
 ---
 ## Notes

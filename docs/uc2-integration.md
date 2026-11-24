@@ -30,7 +30,9 @@ flowchart LR
     U --> Q[QuestionGateway]
     H[HuggingFaceQuestionGateway: HTTP / Gson] -. implements .-> Q
     U --> S[ChallengeStateGateway]
-    A[Team shared-state adapter: pending] -. implements .-> S
+    D[FileGameStateDataAccessObject: shared state / checkpoint] -. implements .-> S
+    D --> A
+    A[SharedChallengeStateGateway: Player / AcademicRecord] -. implements .-> S
     U --> O[ChallengeOutputBoundary]
     P[ChallengePresenter] -. implements .-> O
     P --> M[ChallengeViewModel: plain state]
@@ -72,31 +74,36 @@ sequenceDiagram
     end
 ```
 
-## Shared-state integration: still pending
+## Integrated shared state and checkpoint
 
 Coordination issues: [energy and state #9](https://github.com/yuanyx233/team-project/issues/9),
 [academic data #10](https://github.com/yuanyx233/team-project/issues/10), and
 [question API/navigation #11](https://github.com/yuanyx233/team-project/issues/11).
-These interfaces are proposals for review, not an agreed or completed team integration.
+UC1, UC2, UC3, Rest and Continue now use the same `FileGameStateDataAccessObject` in `Main`.
+The DAO implements `ChallengeStateGateway` and delegates its UC2 operations to
+`SharedChallengeStateGateway`, using the actual current Player and AcademicRecord. UC2 no longer has
+a separate implementation of its transactions inside the DAO.
 
-The inspected baseline is main `59c2805` (including UC2 and UC3's ExamBattle) and the `uc1-choose-major` branch.
+The inspected baseline is main `d856a50`, including shared state (#20), UC1 (#21), academic saving (#22),
+the UC2 adapter (#23), and integrated course/exam/checkpoint support (#24).
 The battle permits up to five answers, so EXAM question requests now
 support up to five questions. This does not change the three-question UC2 challenge or UC3's battle rules.
 
-| Actual teammate code | Remaining connection |
+| Shared API | UC2 connection |
 |---|---|
-| `Player.getEnergy/getMaxEnergy/restoreEnergyToPercent` | No consume-energy operation yet |
-| `Course.getId/getName/getQuestionCategory` | Categories are currently computing/biology/history, not six course-specific topics |
-| `AcademicRecord.getSelectedMajor/getCourseProgress` | Use this same record across buildings and Continue |
-| `CourseProgress.getCourseId` | No challenge result or preparation-point fields yet |
-| `FileGameStateDataAccessObject` | Does not persist academic progress yet; Continue replaces Player |
-| `Main.createView` / `Main.showGame` and `GameView` | Construct the shared state and navigation; the default app still needs its real Lecture Hall state adapter |
+| `Player.spendEnergy/startActivity/finishActivity` | One charge per attempt; the same Player lock blocks exams, Rest, Continue and saves |
+| `Course.getId/getName/getQuestionCategory` | #24 supplies the six README course names; the explicit ID-to-topic map is shared with exams |
+| `AcademicRecord.getSelectedMajor/getCourseProgress` | Read dynamically through the existing `AcademicRecordAccess` port after Continue |
+| `CourseProgress.getChallengeResult/getPreparationPoints/recordChallengeResult` | Stores completed class work; exam skills read its derived points without consuming them |
+| `FileGameStateDataAccessObject` | Version-2 checkpoints restore class and exam results, plus the major, day, energy and weather |
+| `Main.createView` / `Main.showGame` and `GameView` | The real Lecture Hall page receives the same DAO as the other buildings |
 
-The UC1 demo currently uses COMP1/COMP2, BIO1/BIO2, HIST1/HIST2. They have not been assumed as agreed IDs.
-UC2 treats IDs as opaque and receives a `QuestionTopic` explicitly. Do not infer identity from the course name
-or pass a whole major's category as a course-specific topic.
+The shared catalogue uses CS101/CS201, BIO101/BIO201 and HIST101/HIST201 with the six README course names.
+The DAO supplies its explicit `Map<String, QuestionTopic>` to the adapter and uses that same map for exams.
+Missing entries throw before spending energy or changing progress. IDs and names are not guessed from
+the broad MMLU subject in `Course.getQuestionCategory()`.
 
-The state owner supplies an adapter implementing:
+The adapter implements:
 
 ```java
 ChallengeOverview loadOverview() throws ChallengeStateException;
@@ -115,22 +122,33 @@ ChallengeOverview abandonChallenge(String attemptId) throws ChallengeStateExcept
 - Abandon releases only the matching lock, without a refund or rewards; replaying it must be harmless.
 - State mutations return a consistent new overview. The adapter must use the current Player/AcademicRecord
   dynamically after Continue, not cache a replaced object.
-- Rest, Continue and New Game must respect the same active-activity rule. The checkpoint must include completed
-  results and preparation points. Do not save an unfinished QuestionSession.
+- The shared DAO serializes UC2 actions against checkpoint loading/saving, exams and the Rest reservation.
+  Rest holds the same Player lock while weather loads. Checkpoints contain completed results, not active
+  attempts or unfinished QuestionSessions.
 
-After those APIs are agreed, create the page on the EDT with the **same shared state** as the other buildings:
+`CourseProgress.recordChallengeResult(result)` records one immutable result and rejects overwriting it.
+`getPreparationPoints()` derives points from that result, so a separate mutable points total is unnecessary.
+The adapter handles duplicate attempt IDs; these session-only records are not checkpoint data. Old attempts
+are rejected if the current Player or AcademicRecord has been replaced.
+
+Version-2 checkpoints store `correct` and `total` under each course's `challenge` entry. The existing loader
+validates the three-question result and calls `recordChallengeResult` before replacing shared state.
+Version-1 and version-2 checkpoints without completed class work remain readable. This change keeps the
+checkpoint format introduced by the teammates; it does not add a second save file or schema.
+
+The application creates the page on the EDT with the **same shared state** as the other buildings:
 
 ```java
 ClassChallengeView lecture = ClassChallengeFactory.create(
-        sharedChallengeStateAdapter, () -> navigation.setActiveView("street"));
-GameView game = new GameView(title, residence, navigation, lecture);
+        gameState, questions, () -> navigation.setActiveView("street"));
+GameView game = new GameView(title, residence, navigation, registrar, lecture, exam);
 ```
 
-`sharedChallengeStateAdapter` is the proposed external adapter, not an existing concrete class.
-The four-argument GameView constructor accepts this exact page instance; the existing three-argument
-constructor retains its placeholder for callers without the shared adapter. Create the real page in
-`Main.showGame`, where the shared state and navigation are constructed. PR #14 moved this wiring from
-the deleted AppBuilder into Main.
+`gameState` is the shared DAO. Internally, its UC2 adapter receives `this::getPlayer`, the existing
+`AcademicRecordAccess`, and the shared course-topic map. The suppliers are evaluated on every action,
+including after Continue replaces the objects. The six-argument GameView constructor receives the real
+Registrar, Lecture Hall and Exam Centre pages from `Main.showGame`. Compatibility constructors retain
+placeholders for callers that do not supply all activity pages.
 
 The page refreshes when shown; `refresh()` can also
 be called explicitly after a state replacement. Use `requestLeave()` when navigating away or closing a
@@ -157,22 +175,22 @@ hint eligibility, energy policy, grading and final exam persistence.
 one hint. `useHint(index)` returns the index of one wrong option to hide; it does not award points or change
 answers. UC2 never uses the exam hint. Correct answers are absent from classroom output until feedback.
 
-`ExamBattle` can finish after three, four or five submitted answers. `QuestionSession.isComplete()` means
-every loaded question has an answer; it can still be false after a battle ends early. The UC3 interactor
-must use the battle end condition and agree on how early endings affect the score. The current README
-requires answers for all required questions; the battle owner needs to document which questions remain
-required after an early ending. This is tracked in #11; UC2 does not choose a new grading rule.
+`ExamBattle` can finish after three, four or five submitted answers. UC3 now uses that battle condition
+and grades correct answers divided by actual submitted answers, as specified in the latest README.
+It does not use `QuestionSession.isComplete()` to wait for unused questions. One preparation point unlocks
+Hint and two unlock Shield; each is usable once per battle without spending preparation points.
+UC2 still awards points only after its full three-question challenge is completed.
 
 ## Six courses and introductory selection
 
-| Course / QuestionTopic | MMLU subject | Practice row IDs | Exam row IDs |
-|---|---|---|---|
-| Programming Foundation / PROGRAMMING_FOUNDATION | high_school_computer_science | 1, 21, 29 | 59, 60, 72, 65, 83 |
-| Software Design / SOFTWARE_DESIGN | high_school_computer_science | 4, 20, 34 | 57, 63, 93, 69, 71 |
-| Cell Biology / CELL_BIOLOGY | high_school_biology | 5, 18, 19 | 62, 67, 97, 84, 99 |
-| Ecology / ECOLOGY | high_school_biology | 8, 21, 26 | 64, 82, 91, 79, 88 |
-| World History / WORLD_HISTORY | high_school_world_history | 15, 23, 49 | 53, 57, 89, 62, 68 |
-| Historical Perspective / HISTORICAL_PERSPECTIVE | high_school_world_history | 5, 38, 41 | 59, 64, 65, 79, 97 |
+| Course ID | Course / QuestionTopic | MMLU subject | Practice row IDs | Exam row IDs |
+|---|---|---|---|---|
+| CS101 | Programming Foundation / PROGRAMMING_FOUNDATION | high_school_computer_science | 1, 21, 29 | 59, 60, 72, 65, 83 |
+| CS201 | Software Design / SOFTWARE_DESIGN | high_school_computer_science | 4, 20, 34 | 57, 63, 93, 69, 71 |
+| BIO101 | Cell Biology / CELL_BIOLOGY | high_school_biology | 5, 18, 19 | 62, 67, 97, 84, 99 |
+| BIO201 | Ecology / ECOLOGY | high_school_biology | 8, 21, 26 | 64, 82, 91, 79, 88 |
+| HIST101 | World History / WORLD_HISTORY | high_school_world_history | 15, 23, 49 | 53, 57, 89, 62, 68 |
+| HIST201 | Historical Perspective / HISTORICAL_PERSPECTIVE | high_school_world_history | 5, 38, 41 | 59, 64, 65, 79, 97 |
 
 The provider is a dataset API, not a question-generation service. It has **no difficulty setting**. These
 remote selections favour elementary operations, specifications/testing/documentation, cell structures,
@@ -208,7 +226,11 @@ The UI tests exercise selection, confirmation, duplicate-start protection, backg
 feedback, all three submissions, completion, navigation after success, and API error/retry presentation.
 Interactor tests also cover enrolment, completed-result viewing, exact/insufficient energy, early exit,
 stale requests, concurrency, and failed completion retry. HTTP tests use a local test server or injected
-responses. Tests with the fake state validate UC2 and the proposed port, not the unfinished team adapter.
+responses. `SharedChallengeStateGatewayTest` also exercises the actual Player, AcademicRecord and
+CourseProgress: one-time charging/rewards, early exit, changed state, API failures, and the real
+Rest/Continue interactors respecting the challenge lock. `ClassChallengeIntegrationTest` uses the actual
+shared DAO and UC2/UC3/Rest/Continue interactors to check classroom points, exam skills, checkpoint recovery,
+saved-result viewing without another question load, all six course mappings and duplicate-request failures.
 
 Live API check on macOS/Linux, after building:
 

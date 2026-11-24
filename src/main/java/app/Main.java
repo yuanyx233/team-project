@@ -4,6 +4,8 @@ import data_access.BundledWeatherDataAccessObject;
 import data_access.CampusMapResourceLoader;
 import data_access.FileGameStateDataAccessObject;
 import data_access.OpenMeteoWeatherDataAccessObject;
+import data_access.InMemoryMajorCatalog;
+import data_access.question.HuggingFaceQuestionGateway;
 import entity.Building;
 import entity.CampusMap;
 import entity.GameDay;
@@ -19,6 +21,12 @@ import interface_adapter.rest.ResidenceFormat;
 import interface_adapter.rest.RestController;
 import interface_adapter.rest.RestPresenter;
 import interface_adapter.rest.RestViewModel;
+import interface_adapter.choose_major.ChooseMajorController;
+import interface_adapter.choose_major.ChooseMajorPresenter;
+import interface_adapter.choose_major.ChooseMajorViewModel;
+import interface_adapter.exam.ExamController;
+import interface_adapter.exam.ExamPresenter;
+import interface_adapter.exam.ExamViewModel;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.nio.file.Path;
@@ -28,10 +36,16 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import use_case.continue_game.ContinueGameInteractor;
 import use_case.rest.RestInteractor;
+import use_case.choose_major.ChooseMajorInteractor;
+import use_case.exam.ExamInteractor;
+import use_case.question.QuestionGateway;
 import view.GameView;
 import view.map.MapView;
 import view.ResidenceView;
 import view.TitleView;
+import view.ChooseMajorView;
+import view.ClassChallengeView;
+import view.ExamView;
 
 public class Main {
     private static final LocalDate START_DATE = LocalDate.of(2025, 9, 2);
@@ -43,7 +57,7 @@ public class Main {
             window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             Path saveFile = Path.of(System.getProperty("user.home"), ".stressdew-valley", "checkpoint.json");
             window.setContentPane(createView(saveFile));
-            window.setSize(800, 550);
+            window.setSize(900, 650);
             window.setMinimumSize(new Dimension(720, 480));
             window.setLocationRelativeTo(null);
             window.setVisible(true);
@@ -51,12 +65,16 @@ public class Main {
     }
 
     public static JPanel createView(Path saveFile) {
+        return createView(saveFile, new HuggingFaceQuestionGateway());
+    }
+
+    public static JPanel createView(Path saveFile, QuestionGateway questions) {
         JPanel root = new JPanel(new BorderLayout());
-        showGame(root, saveFile, "title");
+        showGame(root, saveFile, questions, "title");
         return root;
     }
 
-    private static void showGame(JPanel root, Path saveFile, String firstPage) {
+    private static void showGame(JPanel root, Path saveFile, QuestionGateway questions, String firstPage) {
         // New Game starts fresh in memory; the checkpoint stays unchanged.
         FileGameStateDataAccessObject gameState = new FileGameStateDataAccessObject(
                 saveFile, new GameDay(1, START_DATE), new Player(MAX_ENERGY, MAX_ENERGY));
@@ -72,9 +90,20 @@ public class Main {
                 gameState, new ContinueGamePresenter(titleModel, residenceModel, navigation)));
 
         TitleView title = new TitleView(titleModel, continueGame,
-                () -> showGame(root, saveFile, "street"));
+                () -> showGame(root, saveFile, questions, "street"));
         ResidenceView residence = new ResidenceView(residenceModel, rest,
                 () -> navigation.setActiveView("street"));
+        ChooseMajorViewModel majorModel = new ChooseMajorViewModel();
+        ChooseMajorController chooseMajor = new ChooseMajorController(new ChooseMajorInteractor(
+                InMemoryMajorCatalog.predefined(), gameState, new ChooseMajorPresenter(majorModel)));
+        ChooseMajorView registrar = new ChooseMajorView(chooseMajor, majorModel,
+                () -> navigation.setActiveView("street"));
+        chooseMajor.loadMajors();
+        ClassChallengeView lecture = ClassChallengeFactory.create(gameState, questions,
+                () -> navigation.setActiveView("street"));
+        ExamViewModel examModel = new ExamViewModel();
+        ExamView exam = new ExamView(new ExamController(new ExamInteractor(gameState, questions,
+                new ExamPresenter(examModel))), examModel, () -> navigation.setActiveView("street"));
         // The walkable St. George map is the "street" page; the player starts outside the residence.
         MapViewModel mapModel = new MapViewModel();
         CampusMap campusMap = CampusMapResourceLoader.load(CampusMapResourceLoader.DEFAULT_MAP);
@@ -82,8 +111,16 @@ public class Main {
         walker.placeBelow(campusMap.doorOf(Building.RESIDENCE));
         MapController map = new MapController(campusMap, walker, mapModel, navigation);
         MapView street = new MapView(mapModel, map, () -> navigation.setActiveView("title"));
-        GameView game = new GameView(title, residence, navigation,
-                GameView.defaultLecturePage(navigation), street);
+        GameView game = new GameView(title, residence, navigation, registrar, lecture, exam, street);
+        navigation.addPropertyChangeListener(event -> {
+            switch (navigation.getActiveView()) {
+                case "registrar": chooseMajor.loadMajors(); break;
+                case "lecture": lecture.refresh(); break;
+                case "exam": exam.refresh(); break;
+                case "residence": refreshResidence(gameState, residenceModel); break;
+                default: break;
+            }
+        });
         residenceModel.setState(ResidenceFormat.day(1, START_DATE), ResidenceFormat.noWeather(),
                 ResidenceFormat.energy(MAX_ENERGY, MAX_ENERGY));
         navigation.setActiveView(firstPage);
@@ -92,5 +129,16 @@ public class Main {
         root.add(game, BorderLayout.CENTER);
         root.revalidate();
         root.repaint();
+    }
+
+    private static void refreshResidence(FileGameStateDataAccessObject state, RestViewModel model) {
+        boolean retry = model.isRetryAvailable();
+        String status = model.getSaveText();
+        model.setState(ResidenceFormat.day(state.getCurrentDay().getDayNumber(), state.getCurrentDay().getRealDate()),
+                state.getCurrentWeather() == null ? ResidenceFormat.noWeather()
+                        : ResidenceFormat.weather(state.getCurrentWeather().getCondition(),
+                                state.getCurrentWeather().getHighTemperature(), state.getCurrentWeather().getLowTemperature()),
+                ResidenceFormat.energy(state.getPlayer().getEnergy(), state.getPlayer().getMaxEnergy()));
+        if (retry) { model.setSaveStatus(status, true); }
     }
 }

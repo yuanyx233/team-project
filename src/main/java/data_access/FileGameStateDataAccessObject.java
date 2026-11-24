@@ -4,6 +4,23 @@ import entity.DailyWeather;
 import entity.GameDay;
 import entity.Player;
 import entity.WeatherCondition;
+import entity.AcademicRecord;
+import entity.Course;
+import entity.CourseProgress;
+import entity.ChallengeResult;
+import entity.ExamResult;
+import entity.Major;
+import data_access.challenge.SharedChallengeStateGateway;
+import org.json.JSONArray;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import use_case.challenge.ChallengeOverview;
+import use_case.challenge.ChallengeStateException;
+import use_case.challenge.ChallengeStateGateway;
+import use_case.choose_major.AcademicRecordAccess;
+import use_case.exam.ExamStateGateway;
+import use_case.question.QuestionTopic;
 import org.json.JSONException;
 import org.json.JSONObject;
 import use_case.continue_game.ContinueGameDataAccessInterface;
@@ -21,16 +38,28 @@ import java.time.LocalDate;
 
 /**
  * Holds the current game state and saves it to / loads it from a JSON checkpoint file.
- * Only completed progress is saved; the academic record is to be added once the team's entities exist.
+ * Saves completed academic progress. UC2 delegates to its adapter over this same shared state.
  */
 public class FileGameStateDataAccessObject
-        implements RestGameStateDataAccessInterface, ContinueGameDataAccessInterface {
-    static final int FORMAT_VERSION = 1;
+        implements RestGameStateDataAccessInterface, ContinueGameDataAccessInterface,
+        AcademicRecordAccess, ChallengeStateGateway, ExamStateGateway {
+    static final int FORMAT_VERSION = 2;
+    private static final Map<String, QuestionTopic> COURSE_TOPICS = Map.of(
+            "CS101", QuestionTopic.PROGRAMMING_FOUNDATION, "CS201", QuestionTopic.SOFTWARE_DESIGN,
+            "BIO101", QuestionTopic.CELL_BIOLOGY, "BIO201", QuestionTopic.ECOLOGY,
+            "HIST101", QuestionTopic.WORLD_HISTORY, "HIST201", QuestionTopic.HISTORICAL_PERSPECTIVE);
 
     private final Path file;
     private GameDay currentDay;
     private Player player;
     private DailyWeather currentWeather;
+    private AcademicRecord academicRecord = new AcademicRecord();
+    private final ChallengeStateGateway challenges = new SharedChallengeStateGateway(
+            this::getPlayer, this, COURSE_TOPICS);
+    private String activeAttempt = "";
+    private String activeCourse = "";
+    private String activeKind = "";
+    private String completedAttempt = "";
 
     /**
      * @param file where the checkpoint is stored
@@ -44,13 +73,20 @@ public class FileGameStateDataAccessObject
     }
 
     @Override
-    public void saveCheckpoint() throws SaveFailedException {
+    public synchronized void saveCheckpoint() throws SaveFailedException {
+        if (hasActiveActivity() && !activeKind.equals("rest")) {
+            throw new SaveFailedException("Finish or leave the activity before saving.", null);
+        }
         JSONObject json = new JSONObject()
                 .put("version", FORMAT_VERSION)
                 .put("dayNumber", currentDay.getDayNumber())
                 .put("startDate", currentDay.getStartDate().toString())
                 .put("energy", player.getEnergy())
                 .put("maxEnergy", player.getMaxEnergy());
+        json.put("academic", academicJson());
+        if (academicRecord.hasConfirmedMajor()) {
+            json.put("major", toJson(academicRecord.getSelectedMajor()));
+        }
         if (currentWeather != null) {
             json.put("weather", new JSONObject()
                     .put("date", currentWeather.getDate().toString())
@@ -77,10 +113,13 @@ public class FileGameStateDataAccessObject
     }
 
     @Override
-    public void loadCheckpoint() throws InvalidCheckpointException {
+    public synchronized void loadCheckpoint() throws InvalidCheckpointException {
+        if (hasActiveActivity()) {
+            throw new InvalidCheckpointException("Finish or leave the activity before loading.");
+        }
         try {
             JSONObject json = new JSONObject(Files.readString(file, StandardCharsets.UTF_8));
-            if (json.getInt("version") != FORMAT_VERSION) {
+            if (json.getInt("version") != 1 && json.getInt("version") != FORMAT_VERSION) {
                 throw new InvalidCheckpointException("Unsupported checkpoint version: " + json.getInt("version"));
             }
             GameDay day = new GameDay(json.getInt("dayNumber"), LocalDate.parse(json.getString("startDate")));
@@ -96,10 +135,14 @@ public class FileGameStateDataAccessObject
                         WeatherCondition.valueOf(w.getString("condition")),
                         w.getDouble("high"), w.getDouble("low"));
             }
+            Major savedMajor = json.has("major") ? majorFromJson(json.getJSONObject("major")) : null;
+            AcademicRecord restoredRecord = readAcademic(json.optJSONObject("academic"), savedMajor);
             // Only replace the state once everything has been read successfully.
             currentDay = day;
             player = new Player(energy, maxEnergy);
             currentWeather = weather;
+            academicRecord = restoredRecord;
+            completedAttempt = "";
         } catch (IOException | JSONException | DateTimeException | IllegalArgumentException e) {
             throw new InvalidCheckpointException("Checkpoint is damaged: " + e.getMessage(), e);
         }
@@ -129,4 +172,217 @@ public class FileGameStateDataAccessObject
     public void setCurrentWeather(DailyWeather weather) {
         this.currentWeather = weather;
     }
+
+    @Override
+    public AcademicRecord getAcademicRecord() { return academicRecord; }
+
+    @Override
+    public synchronized boolean hasActiveActivity() {
+        return !activeAttempt.isEmpty() || player.hasActiveActivity();
+    }
+
+    @Override
+    public synchronized void beginRest() {
+        if (hasActiveActivity()) {
+            throw new IllegalStateException("Finish or leave the current activity before resting.");
+        }
+        player.startActivity("rest");
+        activeAttempt = "rest";
+        activeKind = "rest";
+    }
+
+    @Override
+    public synchronized void endRest() {
+        if (activeKind.equals("rest")) { clearActivity(); }
+    }
+
+    @Override
+    public QuestionTopic getQuestionTopic(String courseId) { return topicFor(courseId); }
+
+    public static QuestionTopic topicFor(String courseId) {
+        QuestionTopic topic = COURSE_TOPICS.get(courseId);
+        if (topic == null) { throw new IllegalStateException("Unknown course: " + courseId); }
+        return topic;
+    }
+
+    @Override
+    public synchronized ChallengeOverview loadOverview() throws ChallengeStateException {
+        return challenges.loadOverview();
+    }
+
+    private CourseProgress progress(String id) {
+        CourseProgress progress = academicRecord.getCourseProgress().get(id);
+        if (progress == null) {
+            throw new IllegalStateException("Choose a major at the Registrar and select an assigned course.");
+        }
+        return progress;
+    }
+
+    private void startActivity(String courseId, String attemptId, int cost, String kind) {
+        if (attemptId == null || attemptId.isBlank()) {
+            throw new IllegalStateException("Missing activity attempt.");
+        }
+        if (activeAttempt.equals(attemptId) && activeCourse.equals(courseId) && activeKind.equals(kind)) {
+            return;
+        }
+        if (hasActiveActivity()) {
+            throw new IllegalStateException("Finish or leave the current activity first.");
+        }
+        if (completedAttempt.equals(attemptId)) {
+            throw new IllegalStateException("This attempt is already completed.");
+        }
+        CourseProgress progress = progress(courseId);
+        if (kind.equals("exam") && progress.getExamResult() != null) {
+            throw new IllegalStateException("This activity is already completed.");
+        }
+        if (cost < 0 || player.getEnergy() < cost) {
+            throw new IllegalStateException("Not enough energy. Rest at Residence first.");
+        }
+        synchronized (player) {
+            player.startActivity(attemptId);
+            try { player.spendEnergy(cost); }
+            catch (RuntimeException exception) {
+                player.finishActivity(attemptId);
+                throw exception;
+            }
+        }
+        activeAttempt = attemptId;
+        activeCourse = courseId;
+        activeKind = kind;
+    }
+
+    private void requireAttempt(String courseId, String attemptId, String kind) {
+        if (!activeAttempt.equals(attemptId) || !activeCourse.equals(courseId) || !activeKind.equals(kind)) {
+            throw new IllegalStateException("This activity is no longer active.");
+        }
+    }
+
+    private void clearActivity() {
+        player.finishActivity(activeAttempt);
+        activeAttempt = "";
+        activeCourse = "";
+        activeKind = "";
+    }
+
+    @Override
+    public synchronized void startExam(String courseId, String attemptId, int energyCost) {
+        startActivity(courseId, attemptId, energyCost, "exam");
+    }
+
+    @Override
+    public synchronized void completeExam(String courseId, String attemptId, ExamResult result) {
+        if (completedAttempt.equals(attemptId)) { return; }
+        requireAttempt(courseId, attemptId, "exam");
+        progress(courseId).completeExam(result);
+        completedAttempt = attemptId;
+        clearActivity();
+    }
+
+    @Override
+    public synchronized void abandonExam(String attemptId) {
+        requireAttempt(activeCourse, attemptId, "exam");
+        clearActivity();
+    }
+
+    @Override
+    public synchronized ChallengeOverview startChallenge(String courseId, String attemptId, int energyCost)
+            throws ChallengeStateException {
+        return challenges.startChallenge(courseId, attemptId, energyCost);
+    }
+
+    @Override
+    public synchronized ChallengeOverview completeChallenge(String courseId, String attemptId, ChallengeResult result)
+            throws ChallengeStateException {
+        return challenges.completeChallenge(courseId, attemptId, result);
+    }
+
+    @Override
+    public synchronized ChallengeOverview abandonChallenge(String attemptId) throws ChallengeStateException {
+        return challenges.abandonChallenge(attemptId);
+    }
+
+    private JSONObject academicJson() {
+        JSONObject academic = new JSONObject();
+        if (!academicRecord.hasConfirmedMajor()) { return academic; }
+        academic.put("majorId", academicRecord.getSelectedMajor().getId());
+        JSONObject courses = new JSONObject();
+        for (CourseProgress progress : academicRecord.getCourseProgress().values()) {
+            JSONObject entry = new JSONObject();
+            ChallengeResult challenge = progress.getChallengeResult().orElse(null);
+            if (challenge != null) {
+                entry.put("challenge", new JSONObject().put("correct", challenge.getCorrectCount())
+                        .put("total", challenge.getQuestionCount()));
+            }
+            ExamResult exam = progress.getExamResult();
+            if (exam != null) {
+                entry.put("exam", new JSONObject().put("correct", exam.getCorrectCount())
+                        .put("answered", exam.getAnsweredCount()).put("won", exam.hasWon()));
+            }
+            courses.put(progress.getCourseId(), entry);
+        }
+        return academic.put("courses", courses);
+    }
+
+    private AcademicRecord readAcademic(JSONObject json, Major savedMajor) {
+        AcademicRecord record = new AcademicRecord();
+        if (json == null || json.isEmpty()) {
+            if (savedMajor != null) { record.confirmMajor(savedMajor); }
+            return record;
+        }
+        String majorId = json.getString("majorId");
+        if (savedMajor != null && !savedMajor.getId().equals(majorId)) {
+            throw new IllegalArgumentException("Saved major does not match the progress.");
+        }
+        record.confirmMajor(savedMajor != null ? savedMajor
+                : InMemoryMajorCatalog.predefined().findById(majorId)
+                        .orElseThrow(() -> new IllegalArgumentException("Unknown saved major.")));
+        JSONObject courses = json.getJSONObject("courses");
+        if (!courses.keySet().equals(record.getCourseProgress().keySet())) {
+            throw new IllegalArgumentException("Saved courses do not match the major.");
+        }
+        for (String id : courses.keySet()) {
+            CourseProgress progress = record.getCourseProgress().get(id);
+            JSONObject entry = courses.getJSONObject(id);
+            if (entry.has("challenge")) {
+                JSONObject challenge = entry.getJSONObject("challenge");
+                if (challenge.getInt("total") != 3) { throw new IllegalArgumentException("Invalid class length."); }
+                progress.recordChallengeResult(new ChallengeResult(challenge.getInt("correct"), 3));
+            }
+            if (entry.has("exam")) {
+                JSONObject exam = entry.getJSONObject("exam");
+                progress.completeExam(new ExamResult(exam.getInt("correct"), exam.getInt("answered"),
+                        exam.getBoolean("won")));
+            }
+        }
+        return record;
+    }
+    private static JSONObject toJson(Major major) {
+        JSONArray courses = new JSONArray();
+        for (Course course : major.getCourses()) {
+            courses.put(new JSONObject()
+                    .put("id", course.getId())
+                    .put("name", course.getName())
+                    .put("questionCategory", course.getQuestionCategory()));
+        }
+        return new JSONObject()
+                .put("id", major.getId())
+                .put("name", major.getName())
+                .put("description", major.getDescription())
+                .put("sourceUrl", major.getSourceUrl())
+                .put("source", major.getSource().name())
+                .put("courses", courses);
+    }
+
+    private static Major majorFromJson(JSONObject json) {
+        JSONArray array = json.getJSONArray("courses");
+        List<Course> courses = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject course = array.getJSONObject(i);
+            courses.add(new Course(course.getString("id"), course.getString("name"),
+                    course.getString("questionCategory")));
+        }
+        return new Major(json.getString("id"), json.getString("name"), json.getString("description"),
+                courses, json.getString("sourceUrl"), Major.Source.valueOf(json.getString("source")));
+    }
+
 }

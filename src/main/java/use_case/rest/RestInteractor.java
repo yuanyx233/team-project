@@ -9,6 +9,8 @@ import entity.Player;
  * and the completed progress is saved as a checkpoint.
  */
 public class RestInteractor implements RestInputBoundary {
+    static final String ACTIVITY_IN_PROGRESS_MESSAGE = "Finish or leave your challenge or exam before resting.";
+
     private final RestGameStateDataAccessInterface gameState;
     private final RestWeatherDataAccessInterface weatherSource;
     private final RestOutputBoundary presenter;
@@ -23,20 +25,33 @@ public class RestInteractor implements RestInputBoundary {
 
     @Override
     public void execute() {
-        GameDay newDay = gameState.getCurrentDay().next();
-        gameState.setCurrentDay(newDay);
+        if (gameState.getPlayer().hasActiveActivity()) {
+            presenter.prepareFailView(ACTIVITY_IN_PROGRESS_MESSAGE);
+            return;
+        }
+        try { gameState.beginRest(); }
+        catch (IllegalStateException exception) {
+            presenter.prepareFailView(ACTIVITY_IN_PROGRESS_MESSAGE);
+            return;
+        }
+        try {
+            GameDay newDay = gameState.getCurrentDay().next();
 
-        DailyWeather weather = weatherSource.getWeather(newDay.getRealDate());
-        gameState.setCurrentWeather(weather);
-        Player player = gameState.getPlayer();
-        player.restoreEnergyToPercent(weather.getEnergyRestorePercent());
+            DailyWeather weather = weatherSource.getWeather(newDay.getRealDate());
+            gameState.setCurrentDay(newDay);
+            gameState.setCurrentWeather(weather);
+            Player player = gameState.getPlayer();
+            player.restoreEnergyToPercent(weather.getEnergyRestorePercent());
 
-        boolean saved = trySave();
+            boolean saved = trySave();
 
-        presenter.prepareSuccessView(new RestOutputData(
-                newDay.getDayNumber(), newDay.getRealDate(), weather.getCondition(),
-                weather.getHighTemperature(), weather.getLowTemperature(),
-                player.getEnergy(), player.getMaxEnergy(), saved));
+            presenter.prepareSuccessView(new RestOutputData(
+                    newDay.getDayNumber(), newDay.getRealDate(), weather.getCondition(),
+                    weather.getHighTemperature(), weather.getLowTemperature(),
+                    player.getEnergy(), player.getMaxEnergy(), saved));
+        } finally {
+            gameState.endRest();
+        }
     }
 
     @Override
