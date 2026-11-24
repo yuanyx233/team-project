@@ -10,10 +10,11 @@ import entity.CourseProgress;
 import entity.ChallengeResult;
 import entity.ExamResult;
 import entity.Major;
+import data_access.challenge.SharedChallengeStateGateway;
 import org.json.JSONArray;
 import java.util.ArrayList;
 import java.util.List;
-import use_case.challenge.ChallengeCourse;
+import java.util.Map;
 import use_case.challenge.ChallengeOverview;
 import use_case.challenge.ChallengeStateException;
 import use_case.challenge.ChallengeStateGateway;
@@ -37,18 +38,24 @@ import java.time.LocalDate;
 
 /**
  * Holds the current game state and saves it to / loads it from a JSON checkpoint file.
- * Only completed progress is saved; the academic record is to be added once the team's entities exist.
+ * Saves completed academic progress. UC2 delegates to its adapter over this same shared state.
  */
 public class FileGameStateDataAccessObject
         implements RestGameStateDataAccessInterface, ContinueGameDataAccessInterface,
         AcademicRecordAccess, ChallengeStateGateway, ExamStateGateway {
     static final int FORMAT_VERSION = 2;
+    private static final Map<String, QuestionTopic> COURSE_TOPICS = Map.of(
+            "CS101", QuestionTopic.PROGRAMMING_FOUNDATION, "CS201", QuestionTopic.SOFTWARE_DESIGN,
+            "BIO101", QuestionTopic.CELL_BIOLOGY, "BIO201", QuestionTopic.ECOLOGY,
+            "HIST101", QuestionTopic.WORLD_HISTORY, "HIST201", QuestionTopic.HISTORICAL_PERSPECTIVE);
 
     private final Path file;
     private GameDay currentDay;
     private Player player;
     private DailyWeather currentWeather;
     private AcademicRecord academicRecord = new AcademicRecord();
+    private final ChallengeStateGateway challenges = new SharedChallengeStateGateway(
+            this::getPlayer, this, COURSE_TOPICS);
     private String activeAttempt = "";
     private String activeCourse = "";
     private String activeKind = "";
@@ -193,27 +200,14 @@ public class FileGameStateDataAccessObject
     public QuestionTopic getQuestionTopic(String courseId) { return topicFor(courseId); }
 
     public static QuestionTopic topicFor(String courseId) {
-        switch (courseId) {
-            case "CS101": return QuestionTopic.PROGRAMMING_FOUNDATION;
-            case "CS201": return QuestionTopic.SOFTWARE_DESIGN;
-            case "BIO101": return QuestionTopic.CELL_BIOLOGY;
-            case "BIO201": return QuestionTopic.ECOLOGY;
-            case "HIST101": return QuestionTopic.WORLD_HISTORY;
-            case "HIST201": return QuestionTopic.HISTORICAL_PERSPECTIVE;
-            default: throw new IllegalStateException("Unknown course: " + courseId);
-        }
+        QuestionTopic topic = COURSE_TOPICS.get(courseId);
+        if (topic == null) { throw new IllegalStateException("Unknown course: " + courseId); }
+        return topic;
     }
 
     @Override
-    public synchronized ChallengeOverview loadOverview() {
-        List<ChallengeCourse> courses = new ArrayList<>();
-        if (academicRecord.hasConfirmedMajor()) {
-            for (Course course : academicRecord.getSelectedMajor().getCourses()) {
-                courses.add(new ChallengeCourse(course.getId(), course.getName(), topicFor(course.getId()),
-                        progress(course.getId()).getChallengeResult().orElse(null)));
-            }
-        }
-        return new ChallengeOverview(player.getEnergy(), courses);
+    public synchronized ChallengeOverview loadOverview() throws ChallengeStateException {
+        return challenges.loadOverview();
     }
 
     private CourseProgress progress(String id) {
@@ -238,8 +232,7 @@ public class FileGameStateDataAccessObject
             throw new IllegalStateException("This attempt is already completed.");
         }
         CourseProgress progress = progress(courseId);
-        if ((kind.equals("exam") && progress.getExamResult() != null)
-                || (kind.equals("challenge") && progress.getChallengeResult().isPresent())) {
+        if (kind.equals("exam") && progress.getExamResult() != null) {
             throw new IllegalStateException("This activity is already completed.");
         }
         if (cost < 0 || player.getEnergy() < cost) {
@@ -294,39 +287,18 @@ public class FileGameStateDataAccessObject
     @Override
     public synchronized ChallengeOverview startChallenge(String courseId, String attemptId, int energyCost)
             throws ChallengeStateException {
-        try {
-            startActivity(courseId, attemptId, energyCost, "challenge");
-            return loadOverview();
-        } catch (IllegalStateException exception) {
-            throw new ChallengeStateException(exception.getMessage());
-        }
+        return challenges.startChallenge(courseId, attemptId, energyCost);
     }
 
     @Override
     public synchronized ChallengeOverview completeChallenge(String courseId, String attemptId, ChallengeResult result)
             throws ChallengeStateException {
-        try {
-            if (!completedAttempt.equals(attemptId)) {
-                requireAttempt(courseId, attemptId, "challenge");
-                progress(courseId).recordChallengeResult(result);
-                completedAttempt = attemptId;
-                clearActivity();
-            }
-            return loadOverview();
-        } catch (IllegalStateException exception) {
-            throw new ChallengeStateException(exception.getMessage());
-        }
+        return challenges.completeChallenge(courseId, attemptId, result);
     }
 
     @Override
     public synchronized ChallengeOverview abandonChallenge(String attemptId) throws ChallengeStateException {
-        try {
-            requireAttempt(activeCourse, attemptId, "challenge");
-            clearActivity();
-            return loadOverview();
-        } catch (IllegalStateException exception) {
-            throw new ChallengeStateException(exception.getMessage());
-        }
+        return challenges.abandonChallenge(attemptId);
     }
 
     private JSONObject academicJson() {
