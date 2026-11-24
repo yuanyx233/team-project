@@ -7,6 +7,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ExamResultTest {
+    @org.junit.jupiter.api.Test
+    void moreThanFourWrongAnswersCannotBeSaved() {
+        assertThrows(IllegalArgumentException.class, () -> new ExamResult(0, 5, false));
+    }
+
     @ParameterizedTest
     @CsvSource({
         "TTT,   3, 3, 100, A, true",

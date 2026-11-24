@@ -23,20 +23,25 @@ public class RestInteractor implements RestInputBoundary {
 
     @Override
     public void execute() {
-        GameDay newDay = gameState.getCurrentDay().next();
-        gameState.setCurrentDay(newDay);
+        gameState.beginRest();
+        try {
+            GameDay newDay = gameState.getCurrentDay().next();
 
-        DailyWeather weather = weatherSource.getWeather(newDay.getRealDate());
-        gameState.setCurrentWeather(weather);
-        Player player = gameState.getPlayer();
-        player.restoreEnergyToPercent(weather.getEnergyRestorePercent());
+            DailyWeather weather = weatherSource.getWeather(newDay.getRealDate());
+            gameState.setCurrentDay(newDay);
+            gameState.setCurrentWeather(weather);
+            Player player = gameState.getPlayer();
+            player.restoreEnergyToPercent(weather.getEnergyRestorePercent());
 
-        boolean saved = trySave();
+            boolean saved = trySave();
 
-        presenter.prepareSuccessView(new RestOutputData(
-                newDay.getDayNumber(), newDay.getRealDate(), weather.getCondition(),
-                weather.getHighTemperature(), weather.getLowTemperature(),
-                player.getEnergy(), player.getMaxEnergy(), saved));
+            presenter.prepareSuccessView(new RestOutputData(
+                    newDay.getDayNumber(), newDay.getRealDate(), weather.getCondition(),
+                    weather.getHighTemperature(), weather.getLowTemperature(),
+                    player.getEnergy(), player.getMaxEnergy(), saved));
+        } finally {
+            gameState.endRest();
+        }
     }
 
     @Override
