@@ -1,13 +1,19 @@
 package app;
 
 import data_access.BundledWeatherDataAccessObject;
+import data_access.CampusMapResourceLoader;
 import data_access.FileGameStateDataAccessObject;
 import data_access.OpenMeteoWeatherDataAccessObject;
 import data_access.InMemoryMajorCatalog;
 import data_access.question.HuggingFaceQuestionGateway;
+import entity.Building;
+import entity.CampusMap;
 import entity.GameDay;
 import entity.Player;
+import entity.Walker;
 import interface_adapter.ViewManagerModel;
+import interface_adapter.map.MapController;
+import interface_adapter.map.MapViewModel;
 import interface_adapter.continue_game.ContinueGameController;
 import interface_adapter.continue_game.ContinueGamePresenter;
 import interface_adapter.continue_game.TitleViewModel;
@@ -34,6 +40,7 @@ import use_case.choose_major.ChooseMajorInteractor;
 import use_case.exam.ExamInteractor;
 import use_case.question.QuestionGateway;
 import view.GameView;
+import view.map.MapView;
 import view.ResidenceView;
 import view.TitleView;
 import view.ChooseMajorView;
@@ -97,7 +104,14 @@ public class Main {
         ExamViewModel examModel = new ExamViewModel();
         ExamView exam = new ExamView(new ExamController(new ExamInteractor(gameState, questions,
                 new ExamPresenter(examModel))), examModel, () -> navigation.setActiveView("street"));
-        GameView game = new GameView(title, residence, navigation, registrar, lecture, exam);
+        // The walkable St. George map is the "street" page; the player starts outside the residence.
+        MapViewModel mapModel = new MapViewModel();
+        CampusMap campusMap = CampusMapResourceLoader.load(CampusMapResourceLoader.DEFAULT_MAP);
+        Walker walker = new Walker(0, 0);
+        walker.placeBelow(campusMap.doorOf(Building.RESIDENCE));
+        MapController map = new MapController(campusMap, walker, mapModel, navigation);
+        MapView street = new MapView(mapModel, map, () -> navigation.setActiveView("title"));
+        GameView game = new GameView(title, residence, navigation, registrar, lecture, exam, street);
         navigation.addPropertyChangeListener(event -> {
             switch (navigation.getActiveView()) {
                 case "registrar": chooseMajor.loadMajors(); break;

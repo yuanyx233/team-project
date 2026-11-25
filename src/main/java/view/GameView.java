@@ -9,8 +9,7 @@ public class GameView extends JPanel {
     private final CardLayout layout = new CardLayout();
 
     public GameView(TitleView title, ResidenceView residence, ViewManagerModel navigation) {
-        this(title, residence, navigation, new BuildingView("Lecture Hall",
-                "Complete class challenges at Bahen Centre.", () -> navigation.setActiveView("street")));
+        this(title, residence, navigation, defaultLecturePage(navigation));
     }
 
     /** Allows the composition root to supply UC2's page with the shared state already injected. */
@@ -24,14 +23,29 @@ public class GameView extends JPanel {
 
     public GameView(TitleView title, ResidenceView residence, ViewManagerModel navigation,
                     JPanel registrar, JPanel lecture, JPanel exam) {
+        this(title, residence, navigation, registrar, lecture, exam, new StreetView(navigation::setActiveView));
+    }
+
+    /**
+     * Allows the composition root to supply the street page as well, such as the walkable campus map.
+     * The street page must send the player to the building page names used here.
+     */
+    public GameView(TitleView title, ResidenceView residence, ViewManagerModel navigation,
+                    JPanel registrar, JPanel lecture, JPanel exam, JPanel street) {
         setLayout(layout);
         addPage("title", title);
-        addPage("street", new StreetView(navigation::setActiveView));
+        addPage("street", Objects.requireNonNull(street, "Street page is required"));
         addPage("registrar", Objects.requireNonNull(registrar));
         addPage("lecture", Objects.requireNonNull(lecture, "Lecture Hall page is required"));
         addPage("exam", Objects.requireNonNull(exam));
         addPage("residence", residence);
         navigation.addPropertyChangeListener(event -> layout.show(this, navigation.getActiveView()));
+    }
+
+    /** The placeholder Lecture Hall page used until UC2's page is injected. */
+    public static JPanel defaultLecturePage(ViewManagerModel navigation) {
+        return new BuildingView("Lecture Hall",
+                "Complete class challenges at Bahen Centre.", () -> navigation.setActiveView("street"));
     }
 
     private void addPage(String name, JPanel page) {

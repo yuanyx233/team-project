@@ -395,3 +395,5 @@ and [UC3 integration notes](docs/uc3-integration.md) for the Boss battle wiring.
 ---
 ## Notes
 [Any additional notes.]
+
+**Art credits.** The player and the students on the map are composed in Java (`view.map.CharacterSheet`) from [32-pixel Human Sprites](https://opengameart.org/node/20859) by cyanowl (CC0), bundled unchanged in `src/main/resources/characters/` with a `CREDITS.md`. Skin tone, hair, clothing colours, backpack and cap are varied in code; the side view uses the pack's smooth side-walk strip, dressed in code.
