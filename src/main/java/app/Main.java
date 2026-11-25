@@ -83,6 +83,12 @@ public class Main {
         ViewManagerModel navigation = new ViewManagerModel();
         RestViewModel residenceModel = new RestViewModel();
         TitleViewModel titleModel = new TitleViewModel();
+        // Building callbacks return to their own door; New Game starts outside Residence.
+        MapViewModel mapModel = new MapViewModel();
+        CampusMap campusMap = CampusMapResourceLoader.load(CampusMapResourceLoader.DEFAULT_MAP);
+        Walker walker = new Walker(0, 0);
+        walker.placeBelow(campusMap.doorOf(Building.RESIDENCE));
+        MapController map = new MapController(campusMap, walker, mapModel, navigation);
 
         RestController rest = new RestController(
                 new RestInteractor(gameState, weather, new RestPresenter(residenceModel)));
@@ -92,24 +98,18 @@ public class Main {
         TitleView title = new TitleView(titleModel, continueGame,
                 () -> showGame(root, saveFile, questions, "street"));
         ResidenceView residence = new ResidenceView(residenceModel, rest,
-                () -> navigation.setActiveView("street"));
+                () -> map.returnTo(Building.RESIDENCE));
         ChooseMajorViewModel majorModel = new ChooseMajorViewModel();
         ChooseMajorController chooseMajor = new ChooseMajorController(new ChooseMajorInteractor(
                 InMemoryMajorCatalog.predefined(), gameState, new ChooseMajorPresenter(majorModel)));
         ChooseMajorView registrar = new ChooseMajorView(chooseMajor, majorModel,
-                () -> navigation.setActiveView("street"));
+                () -> map.returnTo(Building.REGISTRAR));
         chooseMajor.loadMajors();
         ClassChallengeView lecture = ClassChallengeFactory.create(gameState, questions,
-                () -> navigation.setActiveView("street"));
+                () -> map.returnTo(Building.LECTURE_HALL));
         ExamViewModel examModel = new ExamViewModel();
         ExamView exam = new ExamView(new ExamController(new ExamInteractor(gameState, questions,
-                new ExamPresenter(examModel))), examModel, () -> navigation.setActiveView("street"));
-        // The walkable St. George map is the "street" page; the player starts outside the residence.
-        MapViewModel mapModel = new MapViewModel();
-        CampusMap campusMap = CampusMapResourceLoader.load(CampusMapResourceLoader.DEFAULT_MAP);
-        Walker walker = new Walker(0, 0);
-        walker.placeBelow(campusMap.doorOf(Building.RESIDENCE));
-        MapController map = new MapController(campusMap, walker, mapModel, navigation);
+                new ExamPresenter(examModel))), examModel, () -> map.returnTo(Building.EXAM_CENTRE));
         MapView street = new MapView(mapModel, map, () -> navigation.setActiveView("title"));
         GameView game = new GameView(title, residence, navigation, registrar, lecture, exam, street);
         navigation.addPropertyChangeListener(event -> {
